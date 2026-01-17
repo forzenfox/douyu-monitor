@@ -2,21 +2,11 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from "path";
 
-import styleImport from 'vite-plugin-style-import';
-
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    styleImport({
-      libs: [
-        {
-          libraryName: 'vant',
-          esModule: true,
-          resolveStyle: (name) => `vant/es/${name}/style`,
-        },
-      ],
-    }),
+    // 移除vite-plugin-style-import插件，避免生成错误的绝对路径导入
   ],
   resolve: {
     alias: {
@@ -26,9 +16,8 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        // 添加公共样式
-        additionalData: ` @import "@/global/styles/themes/index.scss";
-                          @import "@/global/styles/vars.scss";`,
+        // 移除additionalData中重复的导入，避免重复编译
+        additionalData: '',
         charset: false,
       }
     }

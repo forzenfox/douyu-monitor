@@ -1,4 +1,8 @@
-@import "./_themes.scss";
+@use "./_themes.scss" as *;
+@use "sass:map";
+
+// 声明全局变量以避免!global警告
+$theme-map: null;
 
 //遍历主题map
 @mixin themeify {
@@ -15,7 +19,7 @@
 
 //声明一个根据Key获取颜色的function
 @function themed($key) {
-  @return map-get($theme-map, $key);
+  @return map.get($theme-map, $key);
 }
 
 @mixin backgroundColor($color) {

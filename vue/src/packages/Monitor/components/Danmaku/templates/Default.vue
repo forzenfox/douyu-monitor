@@ -51,7 +51,7 @@ function getItemClass(data) {
 </script>
 
 <style lang="scss" scoped>
-@import "@/global/styles/themes/index.scss";
+@use "@/global/styles/themes/index.scss" as *;
 .item {
     vertical-align: middle;
     width: 100%;

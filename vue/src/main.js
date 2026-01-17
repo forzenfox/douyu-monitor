@@ -5,14 +5,20 @@ import '@vant/touch-emulator'
 
 // 引入全局样式
 import "@/global/styles/index.scss"
+// 引入Vant全局样式
+import 'vant/lib/index.css'
 
 import { parseUrl } from "./router.js"
 
-let info = parseUrl();
-window.rid = info.rid;
-window.options = info.options;
-logInfo();
-createApp(App).mount('#app')
+async function initApp() {
+    let info = await parseUrl();
+    window.rid = info.rid;
+    window.options = info.options;
+    logInfo();
+    createApp(App).mount('#app')
+}
+
+initApp();
 
 
 function logInfo() {

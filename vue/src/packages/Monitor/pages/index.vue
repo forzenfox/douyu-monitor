@@ -136,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 
 import useClipboard from 'vue-clipboard3'
 
@@ -191,21 +191,94 @@ onMounted(async () => {
 
     // 格式化Options，以保证向下兼容
     options.value = formatObj(options.value, defaultOptions)
-    let data = await getRoomGiftData(rid);
-    let roomGiftData = {prefix: "https://gfs-op.douyucdn.cn/dygift"};
-    if ("giftList" in data.data) {
-        for (let i = 0; i < data.data.giftList.length; i++) {
-            let item = data.data.giftList[i];
-            roomGiftData[item.id] = {
-                n: item.name,
-                pic: item.basicInfo.focusPic,
-                pc: item.priceInfo.price,
+    
+    // 初始化礼物数据
+    await updateGiftData(rid);
+    
+    // 每8小时自动更新礼物数据
+    const updateInterval = 8 * 60 * 60 * 1000; // 8小时
+    const updateTimer = setInterval(() => {
+        updateGiftData(rid);
+    }, updateInterval);
+    
+    // 保存定时器，以便在组件卸载时清除
+    window.giftDataUpdateTimer = updateTimer;
+    	
+    connectWs(rid);
+    
+    // 组件卸载时清除定时器
+    onBeforeUnmount(() => {
+        if (window.giftDataUpdateTimer) {
+            clearInterval(window.giftDataUpdateTimer);
+            delete window.giftDataUpdateTimer;
+        }
+    });
+})
+
+/**
+ * 更新礼物数据
+ * @param {string} rid - 房间号
+ */
+async function updateGiftData(rid) {
+    try {
+        console.log('开始更新礼物数据...');
+        
+        // 获取房间礼物数据
+        let roomGiftRes = await getRoomGiftData(rid);
+        let roomGiftData = {prefix: "https://gfs-op.douyucdn.cn/dygift"};
+        if ("giftList" in roomGiftRes.data) {
+            for (let i = 0; i < roomGiftRes.data.giftList.length; i++) {
+                let item = roomGiftRes.data.giftList[i];
+                roomGiftData[item.id] = {
+                    n: item.name,
+                    pic: item.basicInfo.focusPic,
+                    pc: item.priceInfo.price,
+                }
             }
         }
+        
+        // 获取背包礼物配置
+        let bagGiftRes = await getBagGiftData();
+        
+        // 合并礼物数据
+        allGiftData.value = {...roomGiftData, ...giftData, ...bagGiftRes};
+        
+        console.log('礼物数据更新完成', allGiftData.value);
+    } catch (error) {
+        console.error('更新礼物数据失败:', error);
     }
-    allGiftData.value = {...roomGiftData, ...giftData};
-	connectWs(rid);
-})
+}
+
+/**
+ * 获取背包礼物配置
+ * @returns {Promise<Object>} 背包礼物配置
+ */
+async function getBagGiftData() {
+    try {
+        const res = await fetch('http://webconf.douyucdn.cn/resource/common/prop_gift_list/prop_gift_config.json', {
+            method: 'GET',
+            credentials: 'include',
+        });
+        const text = await res.text();
+        // 处理JSONP响应
+        const jsonStr = text.substring('DYConfigCallback('.length, text.lastIndexOf(')'));
+        const json = JSON.parse(jsonStr);
+        const obj = {};
+        for (const key in json.data) {
+            let item = json.data[key];
+            obj[key] = {
+                n: item.name,
+                pic: item.himg,
+                pc: item.pc,
+                svga: item.effect_icon,
+            };
+        }
+        return obj;
+    } catch (error) {
+        console.error('获取背包礼物配置失败:', error);
+        return {};
+    }
+}
 
 function getRoomGiftData(rid) {
     return new Promise(resolve => {
@@ -317,7 +390,7 @@ watch(() => options.value.transparent, (n, o) => {
 </script>
 
 <style lang="scss" scoped>
-@import "@/global/styles/themes/index.scss";
+@use "@/global/styles/themes/index.scss" as *;
 .monitor {
     @include backgroundColor("backgroundColor");
     width: 100%;

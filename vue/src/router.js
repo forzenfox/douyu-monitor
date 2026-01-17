@@ -1,4 +1,4 @@
-function parseUrl() {
+async function parseUrl() {
     let url = window.location.href;
     let info = {};
     const HOSTS = [
@@ -20,8 +20,37 @@ function parseUrl() {
     } else {
         // 本站
         info = getInfo(url);
+        // 获取真实房间号
+        if (info.rid) {
+            try {
+                const realRid = await getRealRid(info.rid);
+                info.rid = realRid;
+            } catch (error) {
+                console.error('获取真实房间号失败:', error);
+                // 获取失败时使用原始房间号
+            }
+        }
     }
     return info;
+}
+
+/**
+ * 获取真实房间号
+ * @param {string} rid - 原始房间号
+ * @returns {Promise<string>} 真实房间号
+ */
+async function getRealRid(rid) {
+    try {
+        const res = await fetch(`https://wxapp.douyucdn.cn/Live/Room/info/${rid}`);
+        const data = await res.json();
+        if (data.data && data.data.room_id) {
+            return data.data.room_id;
+        }
+        return rid;
+    } catch (error) {
+        console.error('获取真实房间号失败:', error);
+        return rid;
+    }
 }
 
 function getInfo(url) {

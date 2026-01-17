@@ -59,7 +59,7 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
-@import "@/global/styles/themes/index.scss";
+@use "@/global/styles/themes/index.scss" as *;
 .danmaku {
     height: 100%;
     order: v-bind(orderStyle);

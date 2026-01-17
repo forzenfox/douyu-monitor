@@ -1,4 +1,8 @@
 // 全局样式
+@use "@/global/utils/dydata/fansLevel.scss";
+@use "@/global/utils/dydata/roomAdmin.scss";
+@use "@/global/utils/dydata/userLevel.scss";
+
 * {
     padding: 0;
     margin: 0;
@@ -19,10 +23,6 @@ html, body, #app {
     -ms-overflow-style: none;
     overflow: -moz-scrollbars-none;
 }
-
-@import "@/global/utils/dydata/fansLevel.scss";
-@import "@/global/utils/dydata/roomAdmin.scss";
-@import "@/global/utils/dydata/userLevel.scss";
 
 .van-checkbox--horizontal {
     margin-bottom: 1px;
