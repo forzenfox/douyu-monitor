@@ -8,6 +8,8 @@ export default defineConfig({
     vue(),
     // 移除vite-plugin-style-import插件，避免生成错误的绝对路径导入
   ],
+  // GitHub Pages部署配置
+  base: '/douyu-monitor/',
   resolve: {
     alias: {
         '@': path.resolve(__dirname, 'src')

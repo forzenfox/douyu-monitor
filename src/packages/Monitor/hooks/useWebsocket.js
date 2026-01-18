@@ -33,7 +33,6 @@ export function useWebsocket(options, allGiftData) {
         if (superchatList.value.length === 0) return;
         
         const now = Date.now();
-        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 开始更新超级弹幕过期状态，当前列表长度：${superchatList.value.length}`);
         
         superchatList.value.forEach((item, index) => {
             // 默认超级弹幕配置
@@ -44,19 +43,8 @@ export function useWebsocket(options, allGiftData) {
                     body: "rgb(230,33,23)"
                 }
             };
-            
-            // 检查是否过期，并标记状态
-            // 使用配置中的time字段作为过期时长（单位：秒）
-            const expireTime = item.createdAt + superchatOption.time * 1000;
-            const wasExpired = item.isExpired;
-            item.isExpired = expireTime < now;
-            
-            if (item.isExpired !== wasExpired) {
-                console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕 ${index + 1} 过期状态变化：${wasExpired ? '过期' : '未过期'} -> ${item.isExpired ? '过期' : '未过期'}`);
-            }
         });
         
-        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕过期状态更新完成，当前过期数量：${superchatList.value.filter(item => item.isExpired).length}`);
     };
 
     /**
@@ -79,7 +67,7 @@ export function useWebsocket(options, allGiftData) {
         }
         superchatList.value.push(superchat);
         
-        console.log(`[Mock] 生成了一条测试超级弹幕，价格：${price}，当前列表长度：${superchatList.value.length}`);
+        console.debug(`[Mock] 生成了一条测试超级弹幕，价格：${price}，当前列表长度：${superchatList.value.length}`);
     }; */
 
     const connectWs = (rid) => {
@@ -99,7 +87,7 @@ export function useWebsocket(options, allGiftData) {
         
         /* // 开发环境下使用mock数据（自动调试）
         if (import.meta.env.DEV) {
-            console.log("[Mock] 开发环境下使用自动Mock功能");
+            console.debug("[Mock] 开发环境下使用自动Mock功能");
             
             // 每3秒生成一条测试超级弹幕
             const mockInterval = setInterval(mockSuperchat, 3000);
@@ -138,7 +126,7 @@ export function useWebsocket(options, allGiftData) {
      * @returns {Object} 超级弹幕对象
      */
     const generateSuperchat = (data, price) => {
-        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 开始生成超级弹幕，用户：${data.nn || data.userName || '匿名用户'}，价格：${price}，原始数据：`, data);
+        console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 开始生成超级弹幕，用户：${data.nn || data.userName || '匿名用户'}，价格：${price}，原始数据：`, data);
         
         // 默认超级弹幕配置
         const superchatOption = {
@@ -148,8 +136,6 @@ export function useWebsocket(options, allGiftData) {
                 body: "rgb(230,33,23)"
             }
         };
-        
-        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 最终使用的超级弹幕配置：`, superchatOption);
 
         // 根据价格确定超级弹幕等级
         let level = 1;
@@ -166,12 +152,17 @@ export function useWebsocket(options, allGiftData) {
             level = 1;
         }
         
-        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 计算出的超级弹幕等级：${level}`);
+        // 从多种可能的字段中获取用户信息，确保兼容不同消息类型
+        const nickname = data.nn || data.nick || data.userName || data.unk || "匿名用户";
+        const avatar = data.ic || data.icon || data.uic || data.avatar || data.userAvatar || "";
+        const content = data.txt || data.msg || data.content || "";
+        
+        console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 解析出的用户信息：昵称=${nickname}，头像=${avatar}，内容=${content}`);
 
         const superchat = {
-            nn: data.nn || data.userName || "匿名用户", // 昵称，确保有默认值
-            avatar: data.ic || data.avatar || "", // 头像地址
-            txt: data.txt || "", // 弹幕内容，确保有默认值
+            nn: nickname, // 昵称，确保有默认值
+            avatar: avatar, // 头像地址，确保有默认值
+            txt: content, // 弹幕内容，确保有默认值
             price: price, // 价格
             level: level, // 等级
             bgColor: superchatOption.bgColor, // 使用配置中的bgColor对象
@@ -182,7 +173,7 @@ export function useWebsocket(options, allGiftData) {
             isExpired: false
         };
         
-        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 生成的超级弹幕对象：`, superchat);
+        console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 生成的超级弹幕对象：`, superchat);
         return superchat;
     };
 
@@ -191,8 +182,6 @@ export function useWebsocket(options, allGiftData) {
         if (!msgType) {
             return;
         }
-        
-        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 接收到消息，类型：${msgType}`);
         
         // 处理普通弹幕
         if (msgType === "chatmsg" && options.value.switch.includes("danmaku")) {
@@ -208,21 +197,16 @@ export function useWebsocket(options, allGiftData) {
             // 检查用户是否有足够的礼物贡献
             const superchatData = superchatMap[data.uid];
             
-            console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 普通弹幕处理，用户：${data.nn}，内容：${data.txt}`);
-            console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 包含超级弹幕关键词：${hasSuperchatKeyword}，用户礼物贡献：`, superchatData);
             
             // 取消权限限制，所有用户都可以发送超级弹幕
             if (hasSuperchatKeyword && superchatData && superchatData.count >= 1 && options.value.switch.includes("superchat")) {
-                console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 普通弹幕触发超级弹幕生成`);
                 // 生成超级弹幕
                 const superchat = generateSuperchat(data, superchatData.price);
                 
                 if (superchatList.value.length + 1 > options.value.threshold) {
-                    console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕列表超过阈值，移除最早的一条`);
                     superchatList.value.shift();
                 }
                 superchatList.value.push(superchat);
-                console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕添加到列表，当前长度：${superchatList.value.length}`);
                 
                 // 语音播报
                 if (options.value.superchat.speak) {
@@ -277,7 +261,7 @@ export function useWebsocket(options, allGiftData) {
         
         // 处理真实超级弹幕消息类型
         if ((msgType === "sc" || msgType === "superchat" || msgType === "fansPaper" || msgType === "professgiftsrc" || msgType === "voiceDanmu") && options.value.switch.includes("superchat")) {
-            console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 接收到超级弹幕消息，类型：${msgType}`);
+            console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 接收到超级弹幕消息，类型：${msgType}`);
             let data = stt.deserialize(msg);
             
             let price = 10; // 默认价格
@@ -290,7 +274,7 @@ export function useWebsocket(options, allGiftData) {
                     // 标准超级弹幕消息
                     price = data.price || data.cost || 10;
                     txt = data.txt || data.msg || "";
-                    console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 标准超级弹幕，价格：${price}，内容：${txt}`);
+                    console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 标准超级弹幕，价格：${price}，内容：${txt}`);
                     break;
                     
                 case "fansPaper":
@@ -298,7 +282,7 @@ export function useWebsocket(options, allGiftData) {
                     // 根据文本级别计算价格（负值）
                     price = data.textLevel || -1;
                     txt = data.txt || "";
-                    console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 粉丝牌弹幕，文本级别：${price}，内容：${txt}`);
+                    console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 粉丝牌弹幕，文本级别：${price}，内容：${txt}`);
                     break;
                     
                 case "professgiftsrc":
@@ -306,7 +290,7 @@ export function useWebsocket(options, allGiftData) {
                     // 固定价格级别
                     price = -3;
                     txt = data.txt || "";
-                    console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 专业礼物弹幕，价格：${price}，内容：${txt}`);
+                    console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 专业礼物弹幕，价格：${price}，内容：${txt}`);
                     break;
                     
                 case "voiceDanmu":
@@ -314,7 +298,7 @@ export function useWebsocket(options, allGiftData) {
                     // 基于语音价格计算
                     price = data.cprice ? Number(data.cprice) / 100 : 10;
                     txt = data.txt || "";
-                    console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 语音弹幕，原始价格：${data.cprice}，转换后：${price}，内容：${txt}`);
+                    console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 语音弹幕，原始价格：${data.cprice}，转换后：${price}，内容：${txt}`);
                     break;
             }
             
@@ -328,11 +312,11 @@ export function useWebsocket(options, allGiftData) {
             }, price);
             
             if (superchatList.value.length + 1 > options.value.threshold) {
-                console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕列表超过阈值，移除最早的一条`);
+                console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕列表超过阈值，移除最早的一条`);
                 superchatList.value.shift();
             }
             superchatList.value.push(superchat);
-            console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕添加到列表，当前长度：${superchatList.value.length}`);
+            console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕添加到列表，当前长度：${superchatList.value.length}`);
             
             // 语音播报
             if (options.value.superchat.speak) {
@@ -345,6 +329,7 @@ export function useWebsocket(options, allGiftData) {
             }
         }
         
+        // 礼物信息
         if ((["dgb", "odfbc", "rndfbc", "anbc", "rnewbc", "blab", "fansupgradebroadcast"].includes(msgType)) && options.value.switch.includes("gift")) {
             let data = stt.deserialize(msg);
             // 续费钻粉
@@ -550,6 +535,8 @@ export function useWebsocket(options, allGiftData) {
                     break;
             }
         }
+
+        // 进场信息
         if (msgType === "uenter" && options.value.switch.includes("enter")) {
             let data = stt.deserialize(msg);
             if (!checkEnterValid(data)) {

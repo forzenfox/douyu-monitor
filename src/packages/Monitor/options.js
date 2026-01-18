@@ -8,10 +8,10 @@ export const defaultOptions = {
     // 每个模块的占比%
     size: {
         enter: 15,
-        gift: 20,
+        gift: 15,
         danmaku: 25,
         superchat: 25,
-        commandDanmaku: 15,
+        commandDanmaku: 20
     },
     // 每个模块的排序
     order: {
