@@ -43,6 +43,12 @@ export function useWebsocket(options, allGiftData) {
                     body: "rgb(230,33,23)"
                 }
             };
+            
+            // 计算过期时间（创建时间 + 持续时间，单位：毫秒）
+            const expireTime = item.createdAt + superchatOption.time * 1000;
+            
+            // 更新过期状态
+            item.isExpired = now > expireTime;
         });
         
     };
