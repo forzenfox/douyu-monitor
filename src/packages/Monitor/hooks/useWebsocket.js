@@ -153,9 +153,11 @@ export function useWebsocket(options, allGiftData) {
         }
         
         // 从多种可能的字段中获取用户信息，确保兼容不同消息类型
-        const nickname = data.nn || data.nick || data.userName || data.unk || "匿名用户";
-        const avatar = data.ic || data.icon || data.uic || data.avatar || data.userAvatar || "";
-        const content = data.txt || data.msg || data.content || "";
+        // 特别处理voiceDanmu类型，从chatmsg对象中提取真实的用户信息和弹幕内容
+        const chatmsg = data.chatmsg || {};
+        const nickname = chatmsg.nn || data.nn || data.nick || data.userName || data.unk || "匿名用户";
+        const avatar = chatmsg.ic || data.ic || data.icon || data.uic || data.avatar || data.userAvatar || "";
+        const content = chatmsg.txt || data.txt || data.msg || data.content || "";
         
         console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 解析出的用户信息：昵称=${nickname}，头像=${avatar}，内容=${content}`);
 
