@@ -22,4 +22,22 @@ export default defineConfig({
       }
     }
   },
+  server: {
+    proxy: {
+      // 配置真实房间号API代理
+      '/api/roominfo': {
+        target: 'https://wxapp.douyucdn.cn',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/roominfo/, '/Live/Room/info'),
+        secure: true
+      },
+      // 配置背包礼物配置API代理
+      '/api/giftconfig': {
+        target: 'http://webconf.douyucdn.cn',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/giftconfig/, '/resource/common/prop_gift_list/prop_gift_config.json'),
+        secure: false
+      }
+    }
+  }
 })

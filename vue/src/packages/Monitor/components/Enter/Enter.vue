@@ -1,6 +1,6 @@
 <template>
     <div ref="dom_enter" class="enter">
-        <Deafult
+        <Default
             v-for="item in enterList"
             v-memo="[options.mode, options.animation, options.enter.show, options.enter.keywords]"
             :data="item"
@@ -11,14 +11,14 @@
             :showLevel="options.enter.show.includes('level')"
             :showNoble="options.enter.show.includes('noble')"
             :showAvatar="options.enter.show.includes('avatar')"
-        ></Deafult>
+        ></Default>
         <div v-show="isLock" class="gobottom" @click.stop="goToScrollBottom(dom_enter)">回到底部</div>
     </div>
 </template>
 
 <script setup>
 import {ref, onUpdated, onMounted } from 'vue'
-import Deafult from "./templates/Default.vue"
+import Default from "./templates/Default.vue"
 import {useFlexStyle} from "../../hooks/useFlexStyle.js"
 import {useBorderStyle} from "../../hooks/useBorderStyle.js"
 import { useScroll } from '../../hooks/useScroll.js'
@@ -42,12 +42,15 @@ onUpdated(() => {
     onScrollUpdate(dom_enter.value);
 })
 onMounted(() => {
-    dom_enter.value.addEventListener("mousewheel", () => {
-        onScroll(dom_enter.value);
-    })
-    dom_enter.value.addEventListener("touchmove", () => {
-        onScroll(dom_enter.value);
-    })
+    // 修复：在添加事件监听器之前检查DOM元素是否存在
+    if (dom_enter.value) {
+        dom_enter.value.addEventListener("mousewheel", () => {
+            onScroll(dom_enter.value);
+        })
+        dom_enter.value.addEventListener("touchmove", () => {
+            onScroll(dom_enter.value);
+        })
+    }
 })
 </script>
 

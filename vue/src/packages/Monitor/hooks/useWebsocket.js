@@ -3,6 +3,7 @@ import { Ex_WebSocket_UnLogin } from "@/global/utils/websocket.js"
 import { STT } from "@/global/utils/stt.js"
 import { getStrMiddle } from "@/global/utils"
 import { nobleData } from "@/global/utils/dydata/nobleData.js"
+import { speakText } from "@/global/utils/speak.js"
 
 export function useWebsocket(options, allGiftData) {
     let ws = null;
@@ -10,61 +11,378 @@ export function useWebsocket(options, allGiftData) {
     let danmakuList = ref([]);
     let enterList = ref([]);
     let giftList = ref([]);
+    let superchatList = ref([]);
+    let commandDanmakuList = ref([]);
 
     let danmakuListSave = [];
     let enterListSave = [];
     let giftListSave = [];
+    let superchatListSave = [];
+    let commandDanmakuListSave = [];
+    
+    // 超级弹幕映射表，用于存储用户的礼物贡献
+    let superchatMap = {};
+    
+    // 超级弹幕过期清理定时器
+    let superchatCleanupTimer = null;
+
+    /**
+     * 更新超级弹幕的过期状态
+     */
+    const updateSuperchatExpireStatus = () => {
+        if (superchatList.value.length === 0) return;
+        
+        const now = Date.now();
+        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 开始更新超级弹幕过期状态，当前列表长度：${superchatList.value.length}`);
+        
+        superchatList.value.forEach((item, index) => {
+            // 默认超级弹幕配置
+            const defaultSuperchatConfig = {
+                time: 10,
+                bgColor: {
+                    header: "rgb(208,0,0)",
+                    body: "rgb(230,33,23)"
+                }
+            };
+            
+            // 确保options.value.superchat.options存在
+            const superchatOptions = options.value?.superchat?.options || [];
+            
+            // 根据价格获取对应的超级弹幕配置（从高到低匹配）
+            let superchatOption = superchatOptions.find(opt => item.price >= opt.minPrice);
+            if (!superchatOption) {
+                superchatOption = superchatOptions[superchatOptions.length - 1] || defaultSuperchatConfig;
+            }
+            
+            // 确保superchatOption存在
+            superchatOption = superchatOption || defaultSuperchatConfig;
+            
+            // 检查是否过期，并标记状态
+            // 使用配置中的time字段作为过期时长（单位：秒）
+            const expireTime = item.createdAt + superchatOption.time * 1000;
+            const wasExpired = item.isExpired;
+            item.isExpired = expireTime < now;
+            
+            if (item.isExpired !== wasExpired) {
+                console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕 ${index + 1} 过期状态变化：${wasExpired ? '过期' : '未过期'} -> ${item.isExpired ? '过期' : '未过期'}`);
+            }
+        });
+        
+        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕过期状态更新完成，当前过期数量：${superchatList.value.filter(item => item.isExpired).length}`);
+    };
+
+    /**
+     * Mock生成超级弹幕
+     */
+    /* const mockSuperchat = () => {
+        // 生成一条测试超级弹幕
+        const testData = {
+            nn: "测试用户",
+            ic: "avatar_v3/202105/7b4b257d45c74deab9ff4e57746fd8a5",
+            txt: `这是一条测试超级弹幕 ${Date.now()}`,
+            cid: Date.now().toString()
+        };
+        
+        const price = Math.floor(Math.random() * 1000) + 10; // 10-209随机价格
+        const superchat = generateSuperchat(testData, price);
+        
+        if (superchatList.value.length + 1 > options.value.threshold) {
+            superchatList.value.shift();
+        }
+        superchatList.value.push(superchat);
+        
+        console.log(`[Mock] 生成了一条测试超级弹幕，价格：${price}，当前列表长度：${superchatList.value.length}`);
+    }; */
 
     const connectWs = (rid) => {
         if (rid === "") {
             return;
         }
+        
+        // 清理旧的WebSocket和定时器
+        if (ws) {
+            ws.close();
+            ws = null;
+        }
+        if (superchatCleanupTimer) {
+            clearInterval(superchatCleanupTimer);
+            superchatCleanupTimer = null;
+        }
+        
+        /* // 开发环境下使用mock数据（自动调试）
+        if (import.meta.env.DEV) {
+            console.log("[Mock] 开发环境下使用自动Mock功能");
+            
+            // 每3秒生成一条测试超级弹幕
+            const mockInterval = setInterval(mockSuperchat, 3000);
+            
+            // 启动超级弹幕过期状态更新定时器
+            superchatCleanupTimer = setInterval(() => {
+                updateSuperchatExpireStatus();
+            }, 1000);
+            
+            // 清理函数
+            return () => {
+                clearInterval(mockInterval);
+                if (superchatCleanupTimer) {
+                    clearInterval(superchatCleanupTimer);
+                }
+            };
+        } */
+        
         ws = new Ex_WebSocket_UnLogin(rid, (msg) => {
             handleMsg(msg);
         }, () => {
             // 重连
             ws.close();
             ws = null;
-            connectWs();
+            connectWs(rid);
         });
+        
+        // 启动超级弹幕过期状态更新定时器
+        superchatCleanupTimer = setInterval(updateSuperchatExpireStatus, 1000);
     }
+
+    /**
+     * 生成超级弹幕
+     * @param {Object} data - 消息数据
+     * @param {number} price - 超级弹幕价格
+     * @returns {Object} 超级弹幕对象
+     */
+    const generateSuperchat = (data, price) => {
+        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 开始生成超级弹幕，用户：${data.nn || data.userName || '匿名用户'}，价格：${price}，原始数据：`, data);
+        
+        // 默认超级弹幕配置，包含完整的属性
+        const defaultSuperchatConfig = {
+            time: 10,
+            bgColor: {
+                header: "rgb(208,0,0)",
+                body: "rgb(230,33,23)"
+            }
+        };
+        
+        // 确保options.value.superchat.options存在
+        const superchatOptions = options.value?.superchat?.options || [];
+        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕配置：`, superchatOptions);
+        
+        // 根据价格获取对应的超级弹幕配置（从高到低匹配）
+        // 处理负数价格的情况，确保能找到匹配的配置
+        let superchatOption;
+        if (price >= 0) {
+            superchatOption = superchatOptions.find(opt => price >= opt.minPrice);
+        } else {
+            // 负数价格使用最低等级的配置
+            superchatOption = superchatOptions[superchatOptions.length - 1];
+        }
+        
+        // 如果找不到匹配的配置，使用最后一个配置项或默认配置
+        if (!superchatOption) {
+            superchatOption = superchatOptions[superchatOptions.length - 1] || defaultSuperchatConfig;
+            console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 未找到匹配的配置，使用默认配置：`, superchatOption);
+        }
+        
+        // 确保superchatOption和所有必要属性存在
+        superchatOption = superchatOption || defaultSuperchatConfig;
+        superchatOption.time = superchatOption.time || defaultSuperchatConfig.time;
+        superchatOption.bgColor = superchatOption.bgColor || defaultSuperchatConfig.bgColor;
+        superchatOption.bgColor.header = superchatOption.bgColor.header || defaultSuperchatConfig.bgColor.header;
+        superchatOption.bgColor.body = superchatOption.bgColor.body || defaultSuperchatConfig.bgColor.body;
+        
+        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 最终使用的超级弹幕配置：`, superchatOption);
+
+        // 根据价格确定超级弹幕等级
+        let level = 1;
+        if (price >= 0) {
+            for (let i = 0; i < superchatOptions.length; i++) {
+                if (price >= superchatOptions[i].minPrice) {
+                    level = superchatOptions.length - i;
+                    break;
+                }
+            }
+        } else {
+            // 负数价格使用最低等级
+            level = 1;
+        }
+        
+        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 计算出的超级弹幕等级：${level}`);
+
+        const superchat = {
+            nn: data.nn || data.userName || "匿名用户", // 昵称，确保有默认值
+            avatar: data.ic || data.avatar || "", // 头像地址
+            txt: data.txt || "", // 弹幕内容，确保有默认值
+            price: price, // 价格
+            level: level, // 等级
+            bgColor: superchatOption.bgColor, // 使用配置中的bgColor对象
+            textColor: '#FFFFFF', // 默认文字颜色为白色
+            nicknameColor: '#FFFFFF', // 默认昵称颜色为白色
+            key: data.cid || (new Date().getTime() + Math.random()), // 唯一标识
+            createdAt: Date.now(), // 创建时间
+            isExpired: false
+        };
+        
+        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 生成的超级弹幕对象：`, superchat);
+        return superchat;
+    };
 
     const handleMsg = (msg) => {
         let msgType = getStrMiddle(msg, "type@=", "/");
         if (!msgType) {
             return;
         }
+        
+        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 接收到消息，类型：${msgType}`);
+        
+        // 处理普通弹幕
         if (msgType === "chatmsg" && options.value.switch.includes("danmaku")) {
             let data = stt.deserialize(msg);
             // 超管弹幕
-            // {"type":"chatmsg","rid":"4624967","uid":"409227923","nn":"鲨鱼仟仟","txt":"提醒主播，请主播调整自己的上装，请勿深V着装。请尽快调整，谢谢合作。","cid":"609ef1a236494f5c9c85300000000000","ic":"avatar_v3/202105/7b4b257d45c74deab9ff4e57746fd8a5","level":"7","sahf":"1","admzq":"1","pg":"5","cst":"1639922444040","bl":"0","brid":"0","pdg":"35","pdk":"81"}
             if (!checkDanmakuValid(data)) {
                 return;
             }
-            let obj = {
-                nn: data.nn, // 昵称
-                avatar: data.ic, // 头像地址 https://apic.douyucdn.cn/upload/ + avatar + _small.jpg
-                lv: data.level, // 等级
-                txt: data.txt, // 弹幕内容
-                color: data.col, // 弹幕颜色 undefine就是普通弹幕 2蓝色 3绿色 6粉色 4橙色 5紫色 1红色
-                fansName: data.bnn, // 粉丝牌名字
-                fansLv: data.bl, // 粉丝牌等级
-                diamond: data.diaf, // 是否是钻粉
-                noble: data.nl, // 贵族等级
-                nobleC: data.nc, // 贵族弹幕是否开启，1开
-                roomAdmin: data.rg, // 房管，data.rg为4则是房管
-                super: data.pg, // 超管，data.pg为5则为超管
-                vip: data.ail == "453/" || data.ail == "454/", // vip，如果是 453/则为vip  454/则为超级vip
-                key: data.cid, // 时间戳
-            };
-            if (danmakuList.value.length + 1 > options.value.threshold) {
-                danmakuList.value.shift();
-            }
-            danmakuList.value.push(obj);
-            if (options.value.isSaveData) {
-                danmakuListSave.push(msg);
+
+            // 检查是否有超级弹幕关键词
+            const hasSuperchatKeyword = data.txt.includes(options.value.superchat.keyword);
+            
+            // 检查用户是否有足够的礼物贡献
+            const superchatData = superchatMap[data.uid];
+            
+            console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 普通弹幕处理，用户：${data.nn}，内容：${data.txt}`);
+            console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 包含超级弹幕关键词：${hasSuperchatKeyword}，用户礼物贡献：`, superchatData);
+            
+            // 取消权限限制，所有用户都可以发送超级弹幕
+            if (hasSuperchatKeyword && superchatData && superchatData.count >= 1 && options.value.switch.includes("superchat")) {
+                console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 普通弹幕触发超级弹幕生成`);
+                // 生成超级弹幕
+                const superchat = generateSuperchat(data, superchatData.price);
+                
+                if (superchatList.value.length + 1 > options.value.threshold) {
+                    console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕列表超过阈值，移除最早的一条`);
+                    superchatList.value.shift();
+                }
+                superchatList.value.push(superchat);
+                console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕添加到列表，当前长度：${superchatList.value.length}`);
+                
+                // 语音播报
+                if (options.value.superchat.speak) {
+                    speakText(`${data.nn}说：${data.txt}`);
+                }
+                
+                if (options.value.isSaveData) {
+                    superchatListSave.push(msg);
+                }
+                
+                // 移除用户的超级弹幕贡献
+                delete superchatMap[data.uid];
+            } else {
+                // 普通弹幕处理
+                let obj = {
+                    nn: data.nn, // 昵称
+                    avatar: data.ic, // 头像地址 https://apic.douyucdn.cn/upload/ + avatar + _small.jpg
+                    lv: data.level, // 等级
+                    txt: data.txt, // 弹幕内容
+                    color: data.col, // 弹幕颜色 undefine就是普通弹幕 2蓝色 3绿色 6粉色 4橙色 5紫色 1红色
+                    fansName: data.bnn, // 粉丝牌名字
+                    fansLv: data.bl, // 粉丝牌等级
+                    diamond: data.diaf, // 是否是钻粉
+                    noble: data.nl, // 贵族等级
+                    nobleC: data.nc, // 贵族弹幕是否开启，1开
+                    roomAdmin: data.rg, // 房管，data.rg为4则是房管
+                    super: data.pg, // 超管，data.pg为5则为超管
+                    vip: data.ail == "453/" || data.ail == "454/", // vip，如果是 453/则为vip  454/则为超级vip
+                    key: data.cid, // 时间戳
+                };
+                if (danmakuList.value.length + 1 > options.value.threshold) {
+                    danmakuList.value.shift();
+                }
+                danmakuList.value.push(obj);
+                if (options.value.isSaveData) {
+                    danmakuListSave.push(msg);
+                }
+
+                // 检查是否为指令弹幕
+                const commandDanmaku = checkCommandDanmakuValid(data);
+                if (commandDanmaku && options.value.switch.includes("commandDanmaku")) {
+                    if (commandDanmakuList.value.length + 1 > options.value.threshold) {
+                        commandDanmakuList.value.shift();
+                    }
+                    commandDanmakuList.value.push(commandDanmaku);
+                    if (options.value.isSaveData) {
+                        commandDanmakuListSave.push(msg);
+                    }
+                }
             }
         }
+        
+        // 处理真实超级弹幕消息类型
+        if ((msgType === "sc" || msgType === "superchat" || msgType === "fansPaper" || msgType === "professgiftsrc" || msgType === "voiceDanmu") && options.value.switch.includes("superchat")) {
+            console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 接收到超级弹幕消息，类型：${msgType}`);
+            let data = stt.deserialize(msg);
+            
+            let price = 10; // 默认价格
+            let txt = "";
+            
+            // 根据不同消息类型处理
+            switch (msgType) {
+                case "sc":
+                case "superchat":
+                    // 标准超级弹幕消息
+                    price = data.price || data.cost || 10;
+                    txt = data.txt || data.msg || "";
+                    console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 标准超级弹幕，价格：${price}，内容：${txt}`);
+                    break;
+                    
+                case "fansPaper":
+                    // 粉丝牌弹幕
+                    // 根据文本级别计算价格（负值）
+                    price = data.textLevel || -1;
+                    txt = data.txt || "";
+                    console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 粉丝牌弹幕，文本级别：${price}，内容：${txt}`);
+                    break;
+                    
+                case "professgiftsrc":
+                    // 专业礼物弹幕
+                    // 固定价格级别
+                    price = -3;
+                    txt = data.txt || "";
+                    console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 专业礼物弹幕，价格：${price}，内容：${txt}`);
+                    break;
+                    
+                case "voiceDanmu":
+                    // 语音弹幕
+                    // 基于语音价格计算
+                    price = data.cprice ? Number(data.cprice) / 100 : 10;
+                    txt = data.txt || "";
+                    console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 语音弹幕，原始价格：${data.cprice}，转换后：${price}，内容：${txt}`);
+                    break;
+            }
+            
+            // 生成超级弹幕
+            const superchat = generateSuperchat({
+                ...data,
+                txt: txt,
+                nn: data.nn || data.userName || "匿名用户",
+                avatar: data.ic || data.avatar || "",
+                uid: data.uid || data.userId || Math.random().toString(36).substr(2, 9)
+            }, price);
+            
+            if (superchatList.value.length + 1 > options.value.threshold) {
+                console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕列表超过阈值，移除最早的一条`);
+                superchatList.value.shift();
+            }
+            superchatList.value.push(superchat);
+            console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕添加到列表，当前长度：${superchatList.value.length}`);
+            
+            // 语音播报
+            if (options.value.superchat.speak) {
+                const userName = data.nn || data.userName || "匿名用户";
+                speakText(`${userName}说：${txt}`);
+            }
+            
+            if (options.value.isSaveData) {
+                superchatListSave.push(msg);
+            }
+        }
+        
         if ((["dgb", "odfbc", "rndfbc", "anbc", "rnewbc", "blab", "fansupgradebroadcast"].includes(msgType)) && options.value.switch.includes("gift")) {
             let data = stt.deserialize(msg);
             // 续费钻粉
@@ -106,6 +424,26 @@ export function useWebsocket(options, allGiftData) {
                     giftList.value.push(obj);
                     if (options.value.isSaveData) {
                         giftListSave.push(msg);
+                    }
+                    
+                    // 检查是否满足超级弹幕条件
+                    if (options.value.switch.includes("superchat")) {
+                        const giftData = allGiftData.value[data.gfid];
+                        if (giftData) {
+                            // 计算礼物总价值（单位：元）
+                            const totalGiftPrice = Number(data.gfcnt) * Number(giftData.pc) / 100;
+                            // 获取最低超级弹幕价格，确保options.value.superchat.options存在
+                            const superchatOptions = options.value?.superchat?.options || [];
+                            const superchatMinPrice = superchatOptions[superchatOptions.length - 1]?.minPrice;
+                            
+                            if (totalGiftPrice >= superchatMinPrice) {
+                                // 添加到超级弹幕映射表
+                                superchatMap[data.uid] = {
+                                    count: 1,
+                                    price: totalGiftPrice
+                                };
+                            }
+                        }
                     }
                     break;
                 case "odfbc":
@@ -308,14 +646,19 @@ export function useWebsocket(options, allGiftData) {
 
     const checkGiftValid = (data) => {
         let giftData = allGiftData.value[data.gfid];
+        // 如果礼物数据不存在，直接返回true（不屏蔽）
+        if (!giftData) {
+            return true;
+        }
+        
         // 屏蔽单价
-        if (Number(giftData.pc) < Number(options.value.gift.ban.price) * 100) {
+        if (giftData.pc && Number(giftData.pc) < Number(options.value.gift.ban.price) * 100) {
             return false;
         }
 
         // 屏蔽关键词
         let keywords = options.value.gift.ban.keywords ? options.value.gift.ban.keywords.trim() : "";
-        if (keywords !== "") {
+        if (keywords !== "" && giftData.n) {
             let giftName = giftData.n;
             let arr = keywords.split(" ");
             for (let i = 0; i < arr.length; i++) {
@@ -343,5 +686,55 @@ export function useWebsocket(options, allGiftData) {
         return true;
     }
 
-    return { connectWs, danmakuList, enterList, giftList, danmakuListSave, enterListSave, giftListSave }
+    /**
+     * 检查弹幕是否符合指令弹幕规则
+     * @param {Object} data - 弹幕数据
+     * @returns {Object|null} - 符合规则返回指令弹幕对象，否则返回null
+     */
+    const checkCommandDanmakuValid = (data) => {
+        // 检查指令弹幕模块是否启用
+        if (!options.value.commandDanmaku?.enabled) {
+            return null;
+        }
+
+        // 获取指令弹幕配置
+        const { prefix, keywords } = options.value.commandDanmaku;
+        
+        // 检查前缀
+        if (!data.txt.startsWith(prefix)) {
+            return null;
+        }
+
+        // 获取前缀后的内容
+        const contentAfterPrefix = data.txt.slice(prefix.length);
+        
+        // 检查关键词
+        const matchedKeyword = keywords.find(kw => kw.enabled && contentAfterPrefix.includes(kw.name));
+        if (!matchedKeyword) {
+            return null;
+        }
+
+        // 提取指令内容（去除关键词）
+        const commandContent = contentAfterPrefix.replace(matchedKeyword.name, '').trim();
+
+        // 构造指令弹幕对象
+        return {
+            id: data.cid || (new Date().getTime() + Math.random()),
+            userId: data.uid,
+            userName: data.nn,
+            userLevel: Number(data.level),
+            content: data.txt,
+            command: matchedKeyword.name,
+            commandContent: commandContent,
+            timestamp: Date.now(),
+            userInfo: {
+                avatar: data.ic,
+                fansLevel: Number(data.bl) || 0,
+                nobleLevel: Number(data.nl) || 0,
+                isRoomAdmin: data.rg === 4
+            }
+        };
+    }
+
+    return { connectWs, danmakuList, enterList, giftList, superchatList, commandDanmakuList, danmakuListSave, enterListSave, giftListSave, superchatListSave, commandDanmakuListSave }
 }

@@ -1,7 +1,7 @@
 <template>
     <div :class="`item ${showAnimation?'fadeInLeft' : ''} ${getItemClass(data)}`">
         <span class="item__gift">
-            <img class="avatar" :src="avatarSrc" loading="lazy" />
+            <img class="gift-avatar" :src="avatarSrc" loading="lazy" :alt="giftName" />
         </span>
         <span class="item__cnt">{{giftName}}</span>
         <span class="item__name">{{data.nn}}</span>
@@ -16,46 +16,70 @@ import {nobleData} from "@/global/utils/dydata/nobleData.js"
 const DIAMOND_URL = "https://shark2.douyucdn.cn/front-publish/live-player-aside-master/assets/images/diamonds_banner_logo_c077d7b.gif"
 const GIFT_IMG_PREFIX = "https://gfs-op.douyucdn.cn/dygift"
 const FANS_LEVEL_UP = "https://shark2.douyucdn.cn/front-publish/live-anchor-title-master/assets/images/exp_ca09807.webp"
+const DEFAULT_GIFT_URL = "https://gfs-op.douyucdn.cn/dygift/propFile/douyu/2020/03/11/33071b20d692f070a4b32010a8291272.png"
 
 let props = defineProps(["data", "giftData", "mode", "showAnimation", "totalPrice"])
 
+// 优化礼物图标URL计算
 let avatarSrc = computed(() => {
     let ret = "";
     switch (props.data.type) {
         case "礼物":
-            ret += GIFT_IMG_PREFIX + props.giftData.pic;
+            // 确保giftData和pic存在，否则使用默认礼物图标
+            if (props.giftData && props.giftData.pic) {
+                // 检查pic是否已经是完整URL，如果是则直接使用，否则加上前缀
+                if (props.giftData.pic.startsWith('http')) {
+                    ret = props.giftData.pic;
+                } else {
+                    ret = GIFT_IMG_PREFIX + props.giftData.pic;
+                }
+            } else {
+                // 使用默认礼物图标
+                ret = DEFAULT_GIFT_URL;
+            }
             break;
         case "钻粉":
-            ret += DIAMOND_URL;
+            ret = DIAMOND_URL;
             break;
         case "贵族":
-            ret += nobleData.prefix + nobleData[props.data.nl].pic;
+            if (props.data.nl && nobleData[props.data.nl] && nobleData[props.data.nl].pic) {
+                ret = nobleData.prefix + nobleData[props.data.nl].pic;
+            }
             break;
         case "粉丝牌升级":
-            ret += FANS_LEVEL_UP;
+            ret = FANS_LEVEL_UP;
             break;
         default:
+            // 使用默认礼物图标
+            ret = DEFAULT_GIFT_URL;
             break;
     }
     return ret;
 });
 
+// 优化礼物名称计算
 let giftName = computed(() => {
     let ret = "";
     switch (props.data.type) {
         case "礼物":
-            ret = `${props.giftData.n}*${props.data.gfcnt}`;
+            if (props.giftData && props.giftData.n) {
+                ret = `${props.giftData.n}*${props.data.gfcnt}`;
+            } else {
+                // 当giftData不存在时，使用通用礼物名称
+                ret = `礼物*${props.data.gfcnt || 1}`;
+            }
             break;
         case "钻粉":
-            ret = props.data.name;
+            ret = props.data.name || "钻粉"; // 确保有默认值
             break;
         case "贵族":
-            ret = props.data.name;
+            ret = props.data.name || "贵族"; // 确保有默认值
             break;
         case "粉丝牌升级":
-            ret = props.data.name;
+            ret = props.data.name || "粉丝牌升级"; // 确保有默认值
             break;
         default:
+            ret = "礼物";
             break;
     }
     return ret;
@@ -65,7 +89,8 @@ function getItemClass(item) {
     let ret = "";
     switch (props.data.type) {
         case "礼物":
-            if (Number(props.giftData.pc) * Number(item.gfcnt) >= Number(props.totalPrice) * 100) {
+            // 检查giftData和pc属性是否存在
+            if (props.giftData && props.giftData.pc && Number(props.giftData.pc) * Number(item.gfcnt) >= Number(props.totalPrice) * 100) {
                 if (props.mode === "night") {
                     ret = "highlight-night";
                 } else {
@@ -102,9 +127,6 @@ function getItemClass(item) {
     }
     return ret;
 }
-
-
-
 </script>
 
 <style lang="scss" scoped>
@@ -126,6 +148,9 @@ function getItemClass(item) {
     .item__gift {
         img {
             border-radius: 10%;
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
         }
     }
     .item__fans {

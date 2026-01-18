@@ -1,4 +1,19 @@
 class STT {
+    // 检查是否为对象
+    isObject(v) {
+        return typeof v === 'object' && v !== null && !Array.isArray(v)
+    }
+
+    // 检查是否为字符串
+    isString(v) {
+        return typeof v === 'string'
+    }
+
+    // 检查是否为数字
+    isNumber(v) {
+        return typeof v === 'number'
+    }
+
     escape(v) {
         return v.toString().replace(/@/g, '@A').replace(/\//g, '@S')
     }
@@ -9,11 +24,11 @@ class STT {
     }
 
     serialize(raw) {
-        if (util.isObject(raw)) {
+        if (this.isObject(raw)) {
             return Object.keys(raw).map(k => `${k}@=${this.escape(this.serialize(raw[k]))}/`).join('')
         } else if (Array.isArray(raw)) {
             return raw.map(v => `${this.escape(this.serialize(v))}/`).join('')
-        } else if (util.isString(raw) || util.isNumber(raw)) {
+        } else if (this.isString(raw) || this.isNumber(raw)) {
             return raw.toString()
         }
     }

@@ -14,7 +14,7 @@
         <span v-if="data.roomAdmin=='4' && showRoomAdmin" class="item__roomAdmin">
             <span class="Barrage-icon Barrage-icon--roomAdmin"></span>
         </span>
-        <span v-if="showAvatar" class="item__avatar"><img class="avatar" :src="`https://apic.douyucdn.cn/upload/${data.avatar}_small.jpg`" loading="lazy" /></span>
+        <span v-if="showAvatar" class="item__avatar"><img class="avatar" :src="getAvatarUrl(data.avatar)" @error="handleAvatarError" loading="lazy" /></span>
         <span :class="`item__name ${data.super==='5' ? 'super-name':'' }`">
             <span v-if="data.vip && showVip" class="Barrage-roomVipIcon"></span>
             {{data.nn}}：
@@ -27,6 +27,36 @@
 import {nobleData} from "@/global/utils/dydata/nobleData.js"
 import {danmakuColor} from "@/global/utils/dydata/danmakuColor.js"
 let props = defineProps(["data", "mode", "showAnimation", "showLevel", "showNoble", "showFans", "showDiamond", "showRoomAdmin", "showAvatar", "showVip", "showColor"])
+
+/**
+ * 获取头像URL
+ * @param {string} avatar - 头像标识
+ * @returns {string} 完整的头像URL
+ */
+const getAvatarUrl = (avatar) => {
+    if (!avatar) {
+        return '';
+    }
+    // 如果avatar已经包含完整路径或特殊格式，直接返回
+    if (avatar.startsWith('http') || avatar.startsWith('https')) {
+        return avatar;
+    }
+    // 检查avatar是否已经包含_small.jpg后缀
+    if (avatar.endsWith('_small.jpg')) {
+        return `https://apic.douyucdn.cn/upload/${avatar}`;
+    }
+    return `https://apic.douyucdn.cn/upload/${avatar}_small.jpg`;
+};
+
+/**
+ * 处理头像加载错误
+ * @param {Event} e - 错误事件
+ */
+const handleAvatarError = (e) => {
+    // 可以设置默认头像或清空无效图片
+    e.target.src = '';
+    e.target.style.display = 'none';
+};
 
 // 控制日夜模式背景颜色
 function getItemClass(data) {

@@ -29,6 +29,9 @@
 5. lazy-load
 6. content-visibility
 7. brotli
+8. 超级弹幕功能
+9. 语音播报支持
+10. 多级超级弹幕配置
 
 ### 使用方法
 1. 打开任意斗鱼直播间
@@ -81,15 +84,17 @@ export const defaultOptions = {
         enter: 15,
         gift: 25,
         danmaku: 30,
+        superchat: 30,
     },
     // 每个模块的排序
     order: {
         enter: 0,
         gift: 1,
-        danmaku: 2,
+        superchat: 2,
+        danmaku: 3,
     },
     // 每个模块开关，按顺序排
-    switch: ["enter", "gift", "danmaku"],
+    switch: ["enter", "gift", "danmaku", "superchat"],
     // 数据阈值
     threshold: 100,
     // 字号
@@ -138,6 +143,58 @@ export const defaultOptions = {
             // 粉丝牌升级显示等级>=
             fansLevel: 6,
         }
+    },
+    // 超级弹幕设置
+    superchat: {
+        // 超级弹幕关键词
+        keyword: "#sc",
+        // 显示选项
+        show: ["fans", "noble", "roomAdmin", "diamond", "time"],
+        // 是否语音播报
+        speak: false,
+        // 超级弹幕等级配置
+        options: [
+            {
+                minPrice: 1000,
+                time: 200,
+                bgColor: {
+                    header: "rgb(208,0,0)",
+                    body: "rgb(230,33,23)"
+                }
+            },
+            {
+                minPrice: 500,
+                time: 100,
+                bgColor: {
+                    header: "rgb(194,24,91)",
+                    body: "rgb(233,30,99)"
+                }
+            },
+            {
+                minPrice: 300,
+                time: 30,
+                bgColor: {
+                    header: "rgb(230,81,0)",
+                    body: "rgb(245,124,0)"
+                }
+            },
+            {
+                minPrice: 100,
+                time: 20,
+                bgColor: {
+                    header: "rgb(0,191,165)",
+                    body: "rgb(29,233,182)"
+                }
+            },
+            {
+                minPrice: 50,
+                time: 10,
+                bgColor: {
+                    header: "rgb(21,101,192)",
+                    body: "rgb(30,136,229)"
+                }
+            }
+        ]
     }
 }
 ```
@@ -222,4 +279,32 @@ let obj = {
 
 如果要控制是否显示头像、等级、粉丝牌等，可以在相应的标签中这么写（检查options中show里是否包含）
 v-if="options.enter.show.includes('avatar')"
+```
+
+### 超级弹幕样式
+#### 路径
+`src/packages/Monitor/components/Superchat/templates/Default.vue`
+
+#### props说明
+```
+data: 每条超级弹幕数据，格式如下
+let obj = {
+    nn: data.nn, // 昵称
+    avatar: data.ic, // 头像地址
+    txt: data.txt, // 弹幕内容
+    price: price, // 价格
+    level: level, // 等级
+    bgColor: { // 背景颜色配置
+        header: "rgb(208,0,0)", // 头部背景色
+        body: "rgb(230,33,23)" // 内容背景色
+    },
+    textColor: "#FFFFFF", // 文字颜色
+    nicknameColor: "#FFFFFF", // 昵称颜色
+    key: data.cid || (new Date().getTime() + Math.random()), // 唯一标识
+    createdAt: Date.now(), // 创建时间
+    isExpired: false // 是否过期
+}
+
+如果要控制是否显示粉丝牌、贵族、房管等，可以在相应的标签中这么写（检查options中show里是否包含）
+v-if="options.superchat.show.includes('fans')"
 ```

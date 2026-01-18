@@ -41,7 +41,8 @@ async function parseUrl() {
  */
 async function getRealRid(rid) {
     try {
-        const res = await fetch(`https://wxapp.douyucdn.cn/Live/Room/info/${rid}`);
+        // 使用本地代理API解决CORS问题
+        const res = await fetch(`/api/roominfo/${rid}`);
         const data = await res.json();
         if (data.data && data.data.room_id) {
             return data.data.room_id;

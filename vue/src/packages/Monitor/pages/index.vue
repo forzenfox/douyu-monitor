@@ -1,8 +1,10 @@
 <template>
     <div class="monitor" @click.prevent="onClickMonitor" ref="domMonitor">
-        <Gift v-if="options.switch.includes('gift')" :maxOrder="maxOrder" :options="options" :giftList="giftList" :allGiftData="allGiftData"></Gift>
         <Enter v-if="options.switch.includes('enter')" :maxOrder="maxOrder" :options="options" :enterList="enterList"></Enter>
+        <Gift v-if="options.switch.includes('gift')" :maxOrder="maxOrder" :options="options" :giftList="giftList" :allGiftData="allGiftData"></Gift>
+        <Superchat v-if="options.switch.includes('superchat')" :maxOrder="maxOrder" :options="options" :superchatList="superchatList"></Superchat>
         <Danmaku v-if="options.switch.includes('danmaku')" :maxOrder="maxOrder" :options="options" :danmakuList="danmakuList"></Danmaku>
+        <CommandDanmaku v-if="options.switch.includes('commandDanmaku')" :maxOrder="maxOrder" :options="options" :commandDanmakuList="commandDanmakuList"></CommandDanmaku>
     </div>
     <Popup class="popup" v-model:show="isShowOption" position="bottom" :style="{ height: '50%' }">
         <div class="popup-top">
@@ -36,6 +38,8 @@
                             <Checkbox name="enter" shape="square">进场</Checkbox>
                             <Checkbox name="gift" shape="square">礼物</Checkbox>
                             <Checkbox name="danmaku" shape="square">弹幕</Checkbox>
+                            <Checkbox name="superchat" shape="square">超级弹幕</Checkbox>
+                            <Checkbox name="commandDanmaku" shape="square">指令弹幕</Checkbox>
                         </CheckboxGroup>
                     </template>
                 </Field>
@@ -131,6 +135,55 @@
                 <Field v-model="options.enter.keywords" label="关键昵称" placeholder="空格隔开 例如:昵称1 昵称2"></Field>
                 <Field v-model="options.enter.ban.level" label="屏蔽等级≤" type="digit" placeholder="请输入屏蔽的等级"></Field>
             </Tab>
+            <Tab title="超级弹幕">
+                <Field label="占比">
+                    <template #input>
+                        <Slider v-model="options.size.superchat" :disabled="maxOrder===options.order.superchat"/>
+                    </template>
+                </Field>
+                <Field v-model="options.superchat.keyword" label="关键词" placeholder="请输入超级弹幕关键词"></Field>
+                <Field label="显示">
+                    <template #input>
+                        <CheckboxGroup v-model="options.superchat.show" direction="horizontal">
+                            <Checkbox name="fans" shape="square">粉丝牌</Checkbox>
+                            <Checkbox name="noble" shape="square">贵族</Checkbox>
+                            <Checkbox name="roomAdmin" shape="square">房管</Checkbox>
+                            <Checkbox name="diamond" shape="square">钻粉</Checkbox>
+                            <Checkbox name="time" shape="square">时间</Checkbox>
+                        </CheckboxGroup>
+                    </template>
+                </Field>
+                <Field label="语音播报">
+                    <template #input>
+                        <Switch v-model="options.superchat.speak" size="20" />
+                    </template>
+                </Field>
+                <Field label="价格等级配置" readonly>
+                    <template #input>
+                        <div class="superchat-price-levels">
+                            <div v-for="(item, index) in options.superchat.options" :key="index" class="superchat-price-level-item">
+                                <div class="superchat-price-level-info">
+                                    <span class="price-label">鱼翅金额：{{ item.minPrice }}鱼翅</span>
+                                    <span class="time-label">显示时长：{{ formatTime(item.time) }}</span>
+                                </div>
+                                <div class="superchat-price-level-colors">
+                                    <div class="color-info">
+                                        <span>头部背景色：</span>
+                                        <div class="color-preview" :style="{ backgroundColor: item.bgColor.header }"></div>
+                                    </div>
+                                    <div class="color-info">
+                                        <span>主体背景色：</span>
+                                        <div class="color-preview" :style="{ backgroundColor: item.bgColor.body }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </Field>
+            </Tab>
+            <Tab title="指令弹幕">
+                <CommandDanmakuConfig :options="options" @update:options="onUpdateOptions"/>
+            </Tab>
         </Tabs>
     </Popup>
 </template>
@@ -143,6 +196,9 @@ import useClipboard from 'vue-clipboard3'
 import Danmaku from "../components/Danmaku/Danmaku.vue"
 import Gift from "../components/Gift/Gift.vue"
 import Enter from "../components/Enter/Enter.vue"
+import Superchat from "../components/Superchat/Superchat.vue"
+import CommandDanmaku from "../components/CommandDanmaku/CommandDanmaku.vue"
+import CommandDanmakuConfig from "../components/CommandDanmaku/CommandDanmakuConfig.vue"
 
 import { Popup, Tab, Tabs, Field, Slider, Checkbox, CheckboxGroup, RadioGroup, Radio, Switch, Dialog } from 'vant'
 
@@ -162,7 +218,7 @@ let allGiftData = ref({});
 let isShowOption = ref(false);
 let activeTab = ref(0);
 let { directionStyle, fontSizeStyle, avatarImgSizeStyle} = useNormalStyle(options);
-let { connectWs, danmakuList, enterList, giftList, danmakuListSave, enterListSave, giftListSave } = useWebsocket(options, allGiftData);
+let { connectWs, danmakuList, enterList, giftList, superchatList, commandDanmakuList, danmakuListSave, enterListSave, giftListSave, superchatListSave, commandDanmakuListSave } = useWebsocket(options, allGiftData);
 let { toClipboard } = useClipboard();
 
 let maxOrder = computed(() => {
@@ -190,7 +246,22 @@ onMounted(async () => {
     }
 
     // 格式化Options，以保证向下兼容
-    options.value = formatObj(options.value, defaultOptions)
+    options.value = formatObj(options.value, defaultOptions);
+    
+    // 确保所有模块的order值固定，保证修改配置后区域位置不会变化
+    options.value.order.enter = 0;
+    options.value.order.gift = 1;
+    options.value.order.danmaku = 2;
+    options.value.order.superchat = 3;
+    options.value.order.commandDanmaku = 4;
+    
+    // 确保超级弹幕配置使用默认配置中的选项（修复配置不一致问题）
+    options.value.superchat.options = deepCopy(defaultOptions.superchat.options);
+    
+    // 确保超级弹幕配置项的完整性
+    if (options.value.superchat && options.value.superchat.options) {
+        options.value.superchat.options = options.value.superchat.options.map(ensureSuperchatOptionComplete);
+    }
     
     // 初始化礼物数据
     await updateGiftData(rid);
@@ -203,7 +274,7 @@ onMounted(async () => {
     
     // 保存定时器，以便在组件卸载时清除
     window.giftDataUpdateTimer = updateTimer;
-    	
+     
     connectWs(rid);
     
     // 组件卸载时清除定时器
@@ -255,7 +326,8 @@ async function updateGiftData(rid) {
  */
 async function getBagGiftData() {
     try {
-        const res = await fetch('http://webconf.douyucdn.cn/resource/common/prop_gift_list/prop_gift_config.json', {
+        // 使用本地代理API解决CORS问题
+        const res = await fetch('/api/giftconfig', {
             method: 'GET',
             credentials: 'include',
         });
@@ -299,10 +371,13 @@ function onClickMonitor() {
 }
 
 function onChangeSwitch(list) {
-    for (const key in options.value.order) {
-        let index = list.indexOf(key);
-        options.value.order[key] = index + 1;
-    }
+    // 保持固定的order值，不随勾选顺序变化
+    // 进场信息 → 礼物信息 → 超级弹幕 → 普通弹幕 → 指令弹幕
+    options.value.order.enter = 0;
+    options.value.order.gift = 1;
+    options.value.order.danmaku = 2;
+    options.value.order.superchat = 3;
+    options.value.order.commandDanmaku = 4;
 }
 
 function onClickChangeMode() {
@@ -326,14 +401,23 @@ function onClickRestOptions() {
 function onClickSaveData() {
     Dialog.confirm({
         title: '保存数据',
-        message: '下载弹幕、礼物、入场数据',
+        message: '下载弹幕、礼物、入场、超级弹幕数据',
     })
     .then(() => {
         let time = getNowDate();
         exportFile(`【弹幕数据】-${time}`, danmakuListSave.join("\n"));
         exportFile(`【礼物数据】-${time}`, giftListSave.join("\n"));
         exportFile(`【入场数据】-${time}`, enterListSave.join("\n"));
+        exportFile(`【超级弹幕数据】-${time}`, superchatListSave.join("\n"));
     }).catch(() => {});
+}
+
+/**
+ * 更新指令弹幕配置
+ * @param {Object} newOptions - 新的配置对象
+ */
+function onUpdateOptions(newOptions) {
+    options.value = newOptions;
 }
 
 function onClickShare() {
@@ -355,6 +439,66 @@ function onClickShare() {
             console.error(e);
         }
     }).catch(() => {});
+}
+
+/**
+ * 确保超级弹幕配置项的完整性
+ * @param {Object} option - 超级弹幕配置项
+ * @returns {Object} 完整的超级弹幕配置项
+ */
+function ensureSuperchatOptionComplete(option) {
+    // 如果option不存在，返回默认配置
+    if (!option) {
+        return {
+            minPrice: 0,
+            time: 10,
+            bgColor: {
+                header: "rgb(208,0,0)",
+                body: "rgb(230,33,23)"
+            }
+        };
+    }
+    
+    // 确保bgColor存在
+    if (!option.bgColor) {
+        option.bgColor = {
+            header: "rgb(208,0,0)",
+            body: "rgb(230,33,23)"
+        };
+    }
+    
+    // 确保bgColor.header和bgColor.body存在
+    if (!option.bgColor.header) {
+        option.bgColor.header = "rgb(208,0,0)";
+    }
+    if (!option.bgColor.body) {
+        option.bgColor.body = "rgb(230,33,23)";
+    }
+    
+    // 确保minPrice和time存在
+    if (option.minPrice === undefined) {
+        option.minPrice = 0;
+    }
+    if (option.time === undefined) {
+        option.time = 10;
+    }
+    
+    return option;
+}
+
+/**
+ * 格式化时间显示
+ * @param {number} seconds - 秒数
+ * @returns {string} 格式化后的时间字符串
+ */
+function formatTime(seconds) {
+    if (seconds < 60) {
+        return `${seconds}秒`;
+    } else if (seconds < 3600) {
+        return `${Math.floor(seconds / 60)}分钟`;
+    } else {
+        return `${Math.floor(seconds / 3600)}小时`;
+    }
 }
 
 
@@ -427,6 +571,63 @@ watch(() => options.value.transparent, (n, o) => {
             left: 34px;
         }
     }
+}
+
+/* 超级弹幕配置样式 */
+.superchat-price-levels {
+    padding: 10px 0;
+}
+
+.superchat-price-level-item {
+    background-color: #f5f5f5;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-left: 4px solid #1989fa;
+}
+
+.superchat-price-level-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.price-label {
+    color: #ff6b6b;
+}
+
+.time-label {
+    color: #4ecdc4;
+}
+
+.superchat-price-level-colors {
+    display: flex;
+    gap: 20px;
+    margin-top: 10px;
+}
+
+.color-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #666;
+}
+
+.color-preview {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 调整小尺寸表单的样式 */
+.van-field--small {
+    margin-bottom: 8px;
 }
 
 </style>

@@ -43,12 +43,15 @@ onUpdated(() => {
     onScrollUpdate(dom_gift.value);
 })
 onMounted(() => {
-    dom_gift.value.addEventListener("mousewheel", () => {
-        onScroll(dom_gift.value);
-    })
-    dom_gift.value.addEventListener("touchmove", () => {
-        onScroll(dom_gift.value);
-    })
+    // 修复：在添加事件监听器之前检查DOM元素是否存在
+    if (dom_gift.value) {
+        dom_gift.value.addEventListener("mousewheel", () => {
+            onScroll(dom_gift.value);
+        })
+        dom_gift.value.addEventListener("touchmove", () => {
+            onScroll(dom_gift.value);
+        })
+    }
 })
 
 </script>

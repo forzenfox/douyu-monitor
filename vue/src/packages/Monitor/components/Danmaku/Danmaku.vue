@@ -1,6 +1,6 @@
 <template>
     <div ref="dom_danmaku" class="danmaku">
-        <Deafult
+        <Default
             v-for="item in danmakuList"
             v-memo="[options.mode, options.animation, options.danmaku.show]"
             :key="item.key"
@@ -15,14 +15,14 @@
             :showAvatar="options.danmaku.show.includes('avatar')"
             :showVip="options.danmaku.show.includes('vip')"
             :showColor="options.danmaku.show.includes('color')"
-        ></Deafult>
+        ></Default>
         <div v-show="isLock" class="gobottom" @click.stop="goToScrollBottom(dom_danmaku)">回到底部</div>
     </div>
 </template>
 
 <script setup>
 import {ref, onUpdated, onMounted } from 'vue'
-import Deafult from "./templates/Default.vue"
+import Default from "./templates/Default.vue"
 
 import { useFlexStyle } from "../../hooks/useFlexStyle.js"
 import { useBorderStyle } from "../../hooks/useBorderStyle.js"
@@ -48,12 +48,15 @@ onUpdated(() => {
     onScrollUpdate(dom_danmaku.value);
 })
 onMounted(() => {
-    dom_danmaku.value.addEventListener("mousewheel", () => {
-        onScroll(dom_danmaku.value);
-    })
-    dom_danmaku.value.addEventListener("touchmove", () => {
-        onScroll(dom_danmaku.value);
-    })
+    // 修复：在添加事件监听器之前检查DOM元素是否存在
+    if (dom_danmaku.value) {
+        dom_danmaku.value.addEventListener("mousewheel", () => {
+            onScroll(dom_danmaku.value);
+        })
+        dom_danmaku.value.addEventListener("touchmove", () => {
+            onScroll(dom_danmaku.value);
+        })
+    }
 })
 
 </script>

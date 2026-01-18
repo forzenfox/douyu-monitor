@@ -1,0 +1,21 @@
+{
+  "superchatConfig": {
+    "switch": ["superchat", "danmaku", "gift", "enter"],
+    "threshold": 100,
+    "superchat": {
+      "keyword": "超级弹幕",
+      "options": [
+        { "minPrice": 1000, "time": 3600, "bgColor": { "header": "rgb(208,0,0)", "body": "rgb(230,33,23)" } },
+        { "minPrice": 500, "time": 1800, "bgColor": { "header": "rgb(194,24,91)", "body": "rgb(233,30,99)" } },
+        { "minPrice": 100, "time": 300, "bgColor": { "header": "rgb(230,81,0)", "body": "rgb(245,124,0)" } },
+        { "minPrice": 50, "time": 120, "bgColor": { "header": "rgb(0,191,165)", "body": "rgb(29,233,182)" } },
+        { "minPrice": 30, "time": 60, "bgColor": { "header": "rgb(21,101,192)", "body": "rgb(30,136,229)" } },
+        { "minPrice": 10, "time": 30, "bgColor": { "header": "rgb(21,101,192)", "body": "rgb(30,136,229)" } }
+      ]
+    }
+  },
+  "mockDanmaku": "type@=chatmsg/nn@=测试用户/txt@=普通弹幕测试/level@=20/ic@=avatar.jpg/uid@=123/cid@=test123/",
+  "mockSuperchat": "type@=sc/nn@=测试用户/txt@=超级弹幕测试/price@=100/ic@=avatar.jpg/uid@=123/cid@=test123/",
+  "mockGift": "type@=dgb/gfid@=1/gfcnt@=1/hits@=1/nn@=测试用户/level@=20/uid@=123/",
+  "mockEnter": "type@=uenter/nn@=测试用户/level@=20/ic@=avatar.jpg/uid@=123/"
+}
