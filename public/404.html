@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh" data-theme="day">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="icon" href="/douyu-monitor/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DouyuEx弹幕助手</title>
+    <!-- 百度统计代码，仅在生产环境加载 -->
+    <script>
+      var _hmt = _hmt || [];
+      // 检查是否为生产环境（域名不是localhost或127.0.0.1）
+      var isProduction = !/localhost|127\.0\.0\.1/.test(window.location.hostname);
+      if (isProduction) {
+        (function() {
+          var hm = document.createElement("script");
+          hm.src = "https://hm.baidu.com/hm.js?4668119c12746d0d0def8951fac0792e";
+          var s = document.getElementsByTagName("script")[0]; 
+          s.parentNode.insertBefore(hm, s);
+        })();
+      }
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/douyu-monitor/src/main.js"></script>
+  </body>
+</html>
