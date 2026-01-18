@@ -7,9 +7,12 @@
     <div class="command-danmaku-list">
       <Default
         v-for="item in displayList"
+        v-memo="[options.mode, options.animation]"
         :key="item.id"
         :data="item"
         :color="getCommandColor(item.command)"
+        :showAnimation="options.animation"
+        @click="handleCommandClick(item.id)"
       ></Default>
       <div v-if="displayList.length === 0" class="empty-tip">
         暂无指令弹幕
@@ -51,17 +54,14 @@ const getCommandColor = (commandName) => {
   return keyword?.color || '#007bff'; // 默认蓝色
 };
 
-// 计算实际展示的弹幕列表（限制最大数量）
+// 计算实际展示的弹幕列表（不限制数量）
 const displayList = computed(() => {
-  const maxCount = props.options?.commandDanmaku?.maxCount || 20;
-  return props.commandDanmakuList.slice(0, maxCount);
+  return props.commandDanmakuList;
 });
 
 // 计算容器样式
 const containerStyle = computed(() => {
-  const styles = props.options?.commandDanmaku?.styles || {};
   return {
-    fontSize: `${styles.fontSize || 16}px`,
     border: 'none', // 移除外部蓝色边框
     borderRadius: 0, // 移除外部圆角
     padding: 0, // 移除外部内边距
@@ -77,6 +77,19 @@ watch(() => props.commandDanmakuList.length, (newLength, oldLength) => {
     }, 100);
   }
 });
+
+/**
+ * 处理指令弹幕点击事件
+ * @param {string} id - 指令弹幕ID
+ */
+const handleCommandClick = (id) => {
+  // 标记对应的指令弹幕为已过期
+  const index = props.commandDanmakuList.findIndex(item => item.id === id);
+  if (index !== -1) {
+    // 直接修改原数组中的对象，标记为已过期
+    props.commandDanmakuList[index].isExpired = true;
+  }
+};
 
 onMounted(() => {
   const listDom = domCommandDanmaku.value?.querySelector('.command-danmaku-list');

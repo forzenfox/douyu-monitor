@@ -1,7 +1,6 @@
 <template>
   <div class="command-danmaku-config">
     <div class="config-section">
-      <h4>基本设置</h4>
       <div class="config-row">
         <div class="config-item">
           <label class="input-label">
@@ -15,25 +14,10 @@
             >
           </label>
         </div>
-        <div class="config-item">
-          <label class="input-label">
-            <span>最大显示数量：</span>
-            <input 
-              type="number" 
-              v-model.number="localOptions.maxCount" 
-              min="10" 
-              max="50" 
-              @input="handleOptionChange"
-            >
-          </label>
-        </div>
       </div>
     </div>
     
-
-
     <div class="config-section">
-      <h4>关键词设置</h4>
       <div class="keyword-list">
         <div 
           v-for="keyword in localOptions.keywords" 
@@ -86,39 +70,6 @@
           >
             {{ template }}
           </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="config-section">
-      <h4>样式设置</h4>
-      <div class="style-config">
-        <div class="style-item">
-          <label>
-            <span>字体大小：</span>
-            <input 
-              type="range" 
-              v-model.number="localOptions.styles.fontSize" 
-              min="12" 
-              max="20" 
-              @input="handleOptionChange"
-            >
-            <span class="value-display">{{ localOptions.styles.fontSize }}px</span>
-          </label>
-        </div>
-        <div class="style-item">
-          <label>
-            <span>背景透明度：</span>
-            <input 
-              type="range" 
-              v-model.number="backgroundOpacity" 
-              min="0.1" 
-              max="1" 
-              step="0.1" 
-              @input="handleOpacityChange"
-            >
-            <span class="value-display">{{ backgroundOpacity.toFixed(1) }}</span>
-          </label>
         </div>
       </div>
     </div>
@@ -253,25 +204,14 @@ const addPresetKeyword = (template) => {
 }
 
 .config-section {
-  margin-bottom: 20px;
-  padding: 15px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  
-  :deep(.night) & {
-    background-color: rgba(0, 0, 0, 0.2);
-  }
-  
-  h4 {
-    margin: 0 0 15px 0;
-    font-size: 16px;
-    font-weight: bold;
-    color: #333;
+    margin-bottom: 10px;
+    padding: 15px;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
     
     :deep(.night) & {
-      color: #fff;
+        background-color: rgba(0, 0, 0, 0.2);
     }
-  }
 }
 
 .config-item {

@@ -22,7 +22,7 @@ export const defaultOptions = {
         commandDanmaku: 4
     },
     // 每个模块开关，按顺序排
-    switch: ["enter", "gift", "danmaku", "superchat", "commandDanmaku"], // 确保进场信息在开关列表中第一位
+    switch: ["danmaku", "superchat", "commandDanmaku"], // 默认不勾选进场和礼物
     // 数据阈值
     threshold: 100,
     // 字号
@@ -79,77 +79,14 @@ export const defaultOptions = {
         // 显示选项
         show: ["fans", "noble", "roomAdmin", "diamond", "time"],
         // 是否语音播报
-        speak: false,
-        // 超级弹幕等级配置（按截图配置：鱼翅金额、悬停时长）
-        options: [
-            {
-                minPrice: 1000,
-                time: 3600, // 1小时
-                bgColor: {
-                    header: "rgb(226,163,68)",
-                    body: "rgb(245,170,61)"
-                }
-            },
-            {
-                minPrice: 500,
-                time: 1800, // 30分钟
-                bgColor: {
-                    header: "rgb(226,163,68)",
-                    body: "rgb(245,170,61)"
-                }
-            },
-            {
-                minPrice: 100,
-                time: 300, // 5分钟
-                bgColor: {
-                    header: "rgb(194,24,91)",
-                    body: "rgb(233,30,99)"
-                }
-            },
-            {
-                minPrice: 50,
-                time: 120, // 2分钟
-                bgColor: {
-                    header: "rgb(194,24,91)",
-                    body: "rgb(233,30,99)"
-                }
-            },
-            {
-                minPrice: 30,
-                time: 60, // 1分钟
-                bgColor: {
-                    header: "rgb(21,101,192)",
-                    body: "rgb(30,136,229)"
-                }
-            },
-            {
-                minPrice: 10,
-                time: 30, // 30秒
-                bgColor: {
-                    header: "rgb(21,101,192)",
-                    body: "rgb(30,136,229)"
-                }
-            }
-        ]
+        speak: false
     },
     // 指令弹幕设置
     commandDanmaku: {
         // 模块开关
         enabled: true,
-        // 最大显示数量
-        maxCount: 20,
         // 指令前缀
         prefix: '#',
-        // 样式配置
-        styles: {
-            fontSize: 16,
-            color: '#ffffff',
-            backgroundColor: 'rgba(0, 123, 255, 0.8)',
-            border: '1px solid #007bff',
-            borderRadius: '8px',
-            padding: '10px',
-            margin: '5px'
-        },
         // 指令关键词列表
         keywords: [
             { id: 'kw-1', name: '点歌', enabled: true, color: '#007bff' },

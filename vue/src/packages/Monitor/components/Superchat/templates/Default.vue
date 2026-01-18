@@ -1,5 +1,6 @@
 <template>
-    <div class="superchat-item fadeInLeft" :class="[
+    <div :class="[
+        `superchat-item ${showAnimation?'fadeInLeft' : ''}`,
         `superchat-level-${data.level}`,
         { 'superchat-item--expired': data.isExpired }
     ]" :style="{

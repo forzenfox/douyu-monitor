@@ -158,28 +158,6 @@
                         <Switch v-model="options.superchat.speak" size="20" />
                     </template>
                 </Field>
-                <Field label="价格等级配置" readonly>
-                    <template #input>
-                        <div class="superchat-price-levels">
-                            <div v-for="(item, index) in options.superchat.options" :key="index" class="superchat-price-level-item">
-                                <div class="superchat-price-level-info">
-                                    <span class="price-label">鱼翅金额：{{ item.minPrice }}鱼翅</span>
-                                    <span class="time-label">显示时长：{{ formatTime(item.time) }}</span>
-                                </div>
-                                <div class="superchat-price-level-colors">
-                                    <div class="color-info">
-                                        <span>头部背景色：</span>
-                                        <div class="color-preview" :style="{ backgroundColor: item.bgColor.header }"></div>
-                                    </div>
-                                    <div class="color-info">
-                                        <span>主体背景色：</span>
-                                        <div class="color-preview" :style="{ backgroundColor: item.bgColor.body }"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-                </Field>
             </Tab>
             <Tab title="指令弹幕">
                 <CommandDanmakuConfig :options="options" @update:options="onUpdateOptions"/>
@@ -255,12 +233,22 @@ onMounted(async () => {
     options.value.order.superchat = 3;
     options.value.order.commandDanmaku = 4;
     
-    // 确保超级弹幕配置使用默认配置中的选项（修复配置不一致问题）
-    options.value.superchat.options = deepCopy(defaultOptions.superchat.options);
-    
-    // 确保超级弹幕配置项的完整性
-    if (options.value.superchat && options.value.superchat.options) {
-        options.value.superchat.options = options.value.superchat.options.map(ensureSuperchatOptionComplete);
+    // 确保指令弹幕关键词的完整性，修复默认颜色不匹配问题
+    if (options.value.commandDanmaku && options.value.commandDanmaku.keywords) {
+        options.value.commandDanmaku.keywords = options.value.commandDanmaku.keywords.map(keyword => {
+            // 如果颜色未定义或为黑色，使用默认颜色
+            if (!keyword.color || keyword.color === '#000000') {
+                // 为不同的关键词设置不同的默认颜色
+                const defaultColors = {
+                    '点歌': '#007bff',
+                    '转盘': '#28a745',
+                    '抽奖': '#ffc107',
+                    '投票': '#17a2b8'
+                };
+                keyword.color = defaultColors[keyword.name] || '#007bff';
+            }
+            return keyword;
+        });
     }
     
     // 初始化礼物数据

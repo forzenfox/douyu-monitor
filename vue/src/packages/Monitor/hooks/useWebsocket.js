@@ -37,25 +37,13 @@ export function useWebsocket(options, allGiftData) {
         
         superchatList.value.forEach((item, index) => {
             // 默认超级弹幕配置
-            const defaultSuperchatConfig = {
+            const superchatOption = {
                 time: 10,
                 bgColor: {
                     header: "rgb(208,0,0)",
                     body: "rgb(230,33,23)"
                 }
             };
-            
-            // 确保options.value.superchat.options存在
-            const superchatOptions = options.value?.superchat?.options || [];
-            
-            // 根据价格获取对应的超级弹幕配置（从高到低匹配）
-            let superchatOption = superchatOptions.find(opt => item.price >= opt.minPrice);
-            if (!superchatOption) {
-                superchatOption = superchatOptions[superchatOptions.length - 1] || defaultSuperchatConfig;
-            }
-            
-            // 确保superchatOption存在
-            superchatOption = superchatOption || defaultSuperchatConfig;
             
             // 检查是否过期，并标记状态
             // 使用配置中的time字段作为过期时长（单位：秒）
@@ -152,8 +140,8 @@ export function useWebsocket(options, allGiftData) {
     const generateSuperchat = (data, price) => {
         console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 开始生成超级弹幕，用户：${data.nn || data.userName || '匿名用户'}，价格：${price}，原始数据：`, data);
         
-        // 默认超级弹幕配置，包含完整的属性
-        const defaultSuperchatConfig = {
+        // 默认超级弹幕配置
+        const superchatOption = {
             time: 10,
             bgColor: {
                 header: "rgb(208,0,0)",
@@ -161,44 +149,18 @@ export function useWebsocket(options, allGiftData) {
             }
         };
         
-        // 确保options.value.superchat.options存在
-        const superchatOptions = options.value?.superchat?.options || [];
-        console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 超级弹幕配置：`, superchatOptions);
-        
-        // 根据价格获取对应的超级弹幕配置（从高到低匹配）
-        // 处理负数价格的情况，确保能找到匹配的配置
-        let superchatOption;
-        if (price >= 0) {
-            superchatOption = superchatOptions.find(opt => price >= opt.minPrice);
-        } else {
-            // 负数价格使用最低等级的配置
-            superchatOption = superchatOptions[superchatOptions.length - 1];
-        }
-        
-        // 如果找不到匹配的配置，使用最后一个配置项或默认配置
-        if (!superchatOption) {
-            superchatOption = superchatOptions[superchatOptions.length - 1] || defaultSuperchatConfig;
-            console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 未找到匹配的配置，使用默认配置：`, superchatOption);
-        }
-        
-        // 确保superchatOption和所有必要属性存在
-        superchatOption = superchatOption || defaultSuperchatConfig;
-        superchatOption.time = superchatOption.time || defaultSuperchatConfig.time;
-        superchatOption.bgColor = superchatOption.bgColor || defaultSuperchatConfig.bgColor;
-        superchatOption.bgColor.header = superchatOption.bgColor.header || defaultSuperchatConfig.bgColor.header;
-        superchatOption.bgColor.body = superchatOption.bgColor.body || defaultSuperchatConfig.bgColor.body;
-        
         console.log(`[Superchat] [${new Date().toLocaleTimeString()}] 最终使用的超级弹幕配置：`, superchatOption);
 
         // 根据价格确定超级弹幕等级
         let level = 1;
         if (price >= 0) {
-            for (let i = 0; i < superchatOptions.length; i++) {
-                if (price >= superchatOptions[i].minPrice) {
-                    level = superchatOptions.length - i;
-                    break;
-                }
-            }
+            // 根据价格区间确定等级
+            if (price >= 1000) level = 6;
+            else if (price >= 500) level = 5;
+            else if (price >= 100) level = 4;
+            else if (price >= 50) level = 3;
+            else if (price >= 30) level = 2;
+            else level = 1;
         } else {
             // 负数价格使用最低等级
             level = 1;
@@ -727,6 +689,7 @@ export function useWebsocket(options, allGiftData) {
             command: matchedKeyword.name,
             commandContent: commandContent,
             timestamp: Date.now(),
+            isExpired: false, // 添加失效状态属性
             userInfo: {
                 avatar: data.ic,
                 fansLevel: Number(data.bl) || 0,

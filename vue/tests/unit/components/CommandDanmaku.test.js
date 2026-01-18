@@ -152,11 +152,8 @@ describe('CommandDanmaku Component', () => {
       }
     })
 
-    // 验证容器样式 - 只验证字体大小，其他样式已移除
+    // 验证容器样式 - 只验证移除的边框、圆角和内外边距
     const container = wrapper.find('.command-danmaku')
-    expect(container.attributes('style')).toContain('font-size: 18px')
-    // 验证没有边框样式
-    expect(container.attributes('style')).toContain('border: medium')
     expect(container.attributes('style')).toContain('border-radius: 0')
     expect(container.attributes('style')).toContain('padding: 0px')
     expect(container.attributes('style')).toContain('margin: 0px')

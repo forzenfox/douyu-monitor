@@ -1,8 +1,16 @@
 <template>
   <div 
     class="command-danmaku-item" 
-    :class="{ 'highlight': isHighlight }"
-    :style="{ borderColor: props.color }"
+    :class="{
+      'highlight': isHighlight,
+      'command-danmaku-item--expired': data.isExpired,
+      'fadeInLeft': showAnimation
+    }"
+    :style="{
+      borderColor: data.isExpired ? '#CCCCCC' : props.color,
+      cursor: 'pointer'
+    }"
+    @click.stop="$emit('click')"
   >
     <div class="command-row">
       <!-- 头像 -->
@@ -11,12 +19,12 @@
       </span>
       
       <!-- 用户名 -->
-      <span class="username">{{ data.userName }}</span>
+      <span class="username" :style="{ color: data.isExpired ? '#999999' : '' }">{{ data.userName }}</span>
       
       <!-- 指令内容 -->
       <div class="command-content">
-        <span class="command-type">{{ data.command }}：</span>
-        <span class="command-text">{{ data.commandContent || data.content }}</span>
+        <span class="command-type" :style="{ color: data.isExpired ? '#CCCCCC' : '' }">{{ data.command }}：</span>
+        <span class="command-text" :style="{ color: data.isExpired ? '#999999' : '' }">{{ data.commandContent || data.content }}</span>
       </div>
     </div>
   </div>
@@ -33,8 +41,14 @@ const props = defineProps({
   color: {
     type: String,
     default: '#007bff'
+  },
+  showAnimation: {
+    type: Boolean,
+    default: true
   }
 })
+
+const emit = defineEmits(['click'])
 
 const isHighlight = ref(true)
 
@@ -80,8 +94,6 @@ onMounted(() => {
   padding: 10px 12px;
   margin-bottom: 5px;
   transition: all 0.3s ease;
-  opacity: 0;
-  animation: fadeIn 0.3s ease forwards;
   border: 2px solid;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   
@@ -165,6 +177,30 @@ onMounted(() => {
       transform: scale(1.02);
     }
   }
+  
+  // 失效样式
+  &.command-danmaku-item--expired {
+    opacity: 0.6;
+    transform: scale(0.98);
+    
+    :deep(.day) & {
+      background-color: rgba(240, 240, 240, 0.9);
+      box-shadow: none;
+    }
+    
+    :deep(.night) & {
+      background-color: rgba(20, 20, 20, 0.3);
+      box-shadow: none;
+    }
+    
+    .avatar {
+      opacity: 0.5;
+    }
+    
+    .command-type {
+      font-weight: normal;
+    }
+  }
 }
 
 // 淡入动画
@@ -176,6 +212,18 @@ onMounted(() => {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+// 从左侧淡入动画 - 与普通弹幕保持一致
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 </style>
