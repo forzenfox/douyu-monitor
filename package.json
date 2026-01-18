@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && npm run copy-404",
+    "copy-404": "node -e \"const fs = require('fs'); const path = require('path'); const src = path.join(__dirname, 'dist', 'index.html'); const dest = path.join(__dirname, 'dist', '404.html'); fs.copyFileSync(src, dest); console.log('Copied index.html to 404.html');\"",
     "serve": "vite preview",
     "test": "vitest run tests/unit",
     "test:watch": "vitest tests/unit",
