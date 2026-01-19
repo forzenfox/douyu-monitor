@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { parseSuperchatData, getLevelByPrice, getHeaderColor, getBodyColor } from '../../../test-superchat'
+import { parseSuperchatData, getLevelByPrice, getHeaderColor, getBodyColor } from '../../scripts/test-superchat'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
 describe('Superchat Data Parsing', () => {
   // 测试数据文件路径
-  const testDataPath = resolve(__dirname, '../../../【超级弹幕数据】-2026-01-19 17-52-01.txt')
+  const testDataPath = resolve(__dirname, '../../data/superChatTestData.txt')
   
   it('should parse superchat data file correctly', () => {
     const result = parseSuperchatData(testDataPath)
