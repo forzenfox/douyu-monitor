@@ -12,6 +12,9 @@
             :showNoble="options.enter.show.includes('noble')"
             :showAvatar="options.enter.show.includes('avatar')"
         ></Default>
+        <div v-if="enterList.length === 0" class="empty-tip">
+            暂无进场信息
+        </div>
         <div v-show="isLock" class="gobottom" @click.stop="goToScrollBottom(dom_enter)">回到底部</div>
     </div>
 </template>
@@ -67,6 +70,18 @@ onMounted(() => {
     .item {
         justify-content: v-bind(justifyContentStyle);
         text-align: v-bind(textAlignStyle);
+    }
+    
+    // 空状态提示样式
+    .empty-tip {
+        text-align: center;
+        padding: 20px;
+        color: rgba(0, 0, 0, 0.5);
+        font-size: 14px;
+        
+        [data-theme="night"] & {
+            color: rgba(255, 255, 255, 0.3);
+        }
     }
 }
 </style>

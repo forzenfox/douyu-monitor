@@ -203,8 +203,10 @@ let { toClipboard } = useClipboard();
 
 let maxOrder = computed(() => {
     let ret = 0;
-    for (const key in options.value.order) {
-        if (options.value.order[key] > ret) {
+    // 只考虑被勾选的模块
+    const enabledModules = ['enter', 'gift', 'danmaku', 'superchat', 'commandDanmaku'];
+    for (const key of enabledModules) {
+        if (options.value.switch.includes(key) && options.value.order[key] > ret) {
             ret = options.value.order[key];
         }
     }

@@ -8,6 +8,9 @@
             :mode="options.mode"
             :showAnimation="options.animation"
         ></Default>
+        <div v-if="superchatList.length === 0" class="empty-tip">
+            暂无超级弹幕
+        </div>
     </div>
 </template>
 
@@ -59,6 +62,18 @@ onMounted(() => {
     .item {
         justify-content: v-bind(justifyContentStyle);
         text-align: v-bind(textAlignStyle);
+    }
+    
+    // 空状态提示样式
+    .empty-tip {
+        text-align: center;
+        padding: 20px;
+        color: rgba(0, 0, 0, 0.5);
+        font-size: 14px;
+        
+        [data-theme="night"] & {
+            color: rgba(255, 255, 255, 0.3);
+        }
     }
 }
 </style>

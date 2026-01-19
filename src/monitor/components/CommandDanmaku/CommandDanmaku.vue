@@ -2,7 +2,6 @@
   <div 
     ref="domCommandDanmaku" 
     class="command-danmaku" 
-    :style="containerStyle"
   >
     <div class="command-danmaku-list">
       <Default
@@ -57,16 +56,6 @@ const getCommandColor = (commandName) => {
 // 计算实际展示的弹幕列表（不限制数量）
 const displayList = computed(() => {
   return props.commandDanmakuList;
-});
-
-// 计算容器样式
-const containerStyle = computed(() => {
-  return {
-    border: 'none', // 移除外部蓝色边框
-    borderRadius: 0, // 移除外部圆角
-    padding: 0, // 移除外部内边距
-    margin: 0 // 移除外部外边距
-  };
 });
 
 // 监听弹幕列表变化，自动滚动到底部
