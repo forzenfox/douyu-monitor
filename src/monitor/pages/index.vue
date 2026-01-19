@@ -1,5 +1,12 @@
 <template>
     <div class="monitor" @click.prevent="onClickMonitor" ref="domMonitor">
+        <!-- 连接状态指示器 -->
+        <div class="connection-status" :class="{ 'connected': isConnected, 'disconnected': !isConnected }">
+            <div class="status-indicator"></div>
+            <span class="status-text">{{ isConnected ? '已连接' : `连接中...(${reconnectCount}次)` }}</span>
+        </div>
+        
+        
         <Enter v-if="options.switch.includes('enter')" :maxOrder="maxOrder" :options="options" :enterList="enterList"></Enter>
         <Gift v-if="options.switch.includes('gift')" :maxOrder="maxOrder" :options="options" :giftList="giftList" :allGiftData="allGiftData"></Gift>
         <Superchat v-if="options.switch.includes('superchat')" :maxOrder="maxOrder" :options="options" :superchatList="superchatList"></Superchat>
@@ -181,7 +188,7 @@ import { useWebsocket } from "../hooks/useWebsocket.js"
 import { giftData } from "@/global/utils/dydata/giftData.js"
 import { saveLocalData, getLocalData, deepCopy, getClassStyle, getStrMiddle, formatObj } from "@/global/utils"
 import { defaultOptions } from '../options'
-import { exportFile, getNowDate } from '../../../global/utils'
+import { exportFile, getNowDate } from "@/global/utils"
 
 const LOCAL_NAME = "monitor_options"
 
@@ -191,7 +198,7 @@ let allGiftData = ref({});
 let isShowOption = ref(false);
 let activeTab = ref(0);
 let { directionStyle, fontSizeStyle, avatarImgSizeStyle} = useNormalStyle(options);
-let { connectWs, danmakuList, enterList, giftList, superchatList, commandDanmakuList, danmakuListSave, enterListSave, giftListSave, superchatListSave, commandDanmakuListSave } = useWebsocket(options, allGiftData);
+let { connectWs, danmakuList, enterList, giftList, superchatList, commandDanmakuList, danmakuListSave, enterListSave, giftListSave, superchatListSave, commandDanmakuListSave, isConnected, reconnectCount } = useWebsocket(options, allGiftData);
 let { toClipboard } = useClipboard();
 
 let maxOrder = computed(() => {
@@ -527,27 +534,60 @@ watch(() => options.value.transparent, (n, o) => {
     flex-direction: v-bind(directionStyle);
     font-size: v-bind(fontSizeStyle);
     user-select: none;
+    transition: all 0.3s ease;
 }
 .popup {
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    
     .popup-top {
         user-select: none;
-        height: 32px;
+        height: 56px;
         display: flex;
         flex-direction: row-reverse;
         align-items: center;
-        padding: 0 10px;
+        padding: 0 20px;
         box-sizing: border-box;
         text-align: right;
-        border-bottom: 1px solid rgb(227, 227, 227);
+        border-bottom: 1px solid #f0f0f0;
+        background: #ffffff;
+        backdrop-filter: blur(10px);
+        
         > div {
-            width: 24px;
-            height: 24px;
-            margin-left: 10px;
+            width: 32px;
+            height: 32px;
+            margin-left: 16px;
             cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+            
+            &:hover {
+                background-color: #f5f5f5;
+                transform: scale(1.1);
+            }
+            
+            &:active {
+                transform: scale(0.95);
+            }
+            
+            svg {
+                width: 20px;
+                height: 20px;
+                transition: all 0.2s ease;
+            }
         }
+        
         .github {
             position: absolute;
-            left: 0;
+            left: 20px;
+            
+            &:hover {
+                background-color: #f5f5f5;
+            }
         }
     }
 }
@@ -559,10 +599,16 @@ watch(() => options.value.transparent, (n, o) => {
 
 .superchat-price-level-item {
     background-color: #f5f5f5;
-    border-radius: 8px;
+    border-radius: 12px;
     padding: 15px;
     margin-bottom: 15px;
     border-left: 4px solid #1989fa;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
 }
 
 .superchat-price-level-info {
@@ -599,14 +645,125 @@ watch(() => options.value.transparent, (n, o) => {
 .color-preview {
     width: 24px;
     height: 24px;
-    border-radius: 4px;
+    border-radius: 6px;
     border: 1px solid #ddd;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+    
+    &:hover {
+        transform: scale(1.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
 }
 
 /* 调整小尺寸表单的样式 */
 .van-field--small {
     margin-bottom: 8px;
+}
+
+/* 平滑滚动效果 */
+.monitor > * {
+    scroll-behavior: smooth;
+}
+
+/* 连接状态指示器样式 */
+.connection-status {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    z-index: 1000;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    
+    &.connected {
+        background-color: rgba(24, 144, 255, 0.7);
+        
+        .status-indicator {
+            background-color: #52c41a;
+            animation: pulse 2s infinite;
+        }
+    }
+    
+    &.disconnected {
+        background-color: rgba(255, 77, 79, 0.7);
+        
+        .status-indicator {
+            background-color: #ff4d4f;
+            animation: blink 1s infinite;
+        }
+    }
+    
+    .status-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+    }
+    
+    .status-text {
+        font-size: 12px;
+        font-weight: 500;
+    }
+}
+
+/* 闪烁动画 */
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+/* 夜间模式适配 */
+[data-theme="night"] {
+    .popup {
+        background: #1e1e1e;
+        
+        .popup-top {
+            background: #2a2a2a;
+            border-bottom-color: #3a3a3a;
+            
+            > div {
+                &:hover {
+                    background-color: #3a3a3a;
+                }
+                
+                svg {
+                    fill: #ffffff;
+                }
+            }
+        }
+        
+        .superchat-price-level-item {
+            background-color: #2a2a2a;
+            border-left-color: #409eff;
+        }
+    }
+    
+    /* 夜间模式下的连接状态指示器 */
+    .connection-status {
+        background-color: rgba(58, 58, 58, 0.9);
+        
+        &.connected {
+            background-color: rgba(64, 158, 255, 0.9);
+        }
+        
+        &.disconnected {
+            background-color: rgba(255, 77, 79, 0.9);
+        }
+    }
 }
 
 </style>

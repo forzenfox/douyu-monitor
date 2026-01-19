@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import CommandDanmaku from '../../../src/packages/Monitor/components/CommandDanmaku/CommandDanmaku.vue'
+import CommandDanmaku from '../../../src/monitor/components/CommandDanmaku/CommandDanmaku.vue'
 
 describe('CommandDanmaku Component', () => {
   // 基础测试配置

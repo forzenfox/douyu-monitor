@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { useWebsocket } from '../../../src/packages/Monitor/hooks/useWebsocket'
+import { useWebsocket } from '../../../src/monitor/hooks/useWebsocket'
 import { ref } from 'vue'
 
 // 模拟依赖，使用vi.mock的factory函数来模拟所有依赖

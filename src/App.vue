@@ -15,7 +15,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import Monitor from "./packages/Monitor/pages/index.vue"
+import Monitor from "./monitor/pages/index.vue"
 
 // 错误状态
 const hasError = ref(false)

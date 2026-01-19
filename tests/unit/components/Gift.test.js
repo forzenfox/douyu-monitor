@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import Gift from '@/packages/Monitor/components/Gift/Gift.vue'
+import Gift from '@/monitor/components/Gift/Gift.vue'
 
 // 模拟礼物数据
 const mockGiftList = [

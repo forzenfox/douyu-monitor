@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import Enter from '@/packages/Monitor/components/Enter/Enter.vue'
+import Enter from '@/monitor/components/Enter/Enter.vue'
 
 // 模拟入场数据
 const mockEnterList = [

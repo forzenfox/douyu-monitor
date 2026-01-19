@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { useBorderStyle } from '../../../src/packages/Monitor/hooks/useBorderStyle'
+import { useBorderStyle } from '../../../src/monitor/hooks/useBorderStyle'
 import { ref } from 'vue'
 
 describe('useBorderStyle', () => {

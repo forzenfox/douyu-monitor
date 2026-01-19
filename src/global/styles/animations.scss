@@ -1,0 +1,156 @@
+// 动画效果统一管理
+
+// 从左侧淡入
+@-webkit-keyframes fadeInLeft {
+	0% {
+		opacity: 0;
+		-webkit-transform: translateX(-30px);
+	}	
+	100% {
+		opacity: 1;
+		-webkit-transform: translateX(0);
+	}
+}
+ 
+@keyframes fadeInLeft {
+	0% {
+		opacity: 0;
+		transform: translateX(-30px);
+	}	
+	100% {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+// 从下方淡入
+@-webkit-keyframes fadeInUp {
+	0% {
+		opacity: 0;
+		-webkit-transform: translateY(30px);
+	}	
+	100% {
+		opacity: 1;
+		-webkit-transform: translateY(0);
+	}
+}
+ 
+@keyframes fadeInUp {
+	0% {
+		opacity: 0;
+		transform: translateY(30px);
+	}	
+	100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+// 脉冲效果
+@-webkit-keyframes pulse {
+	0% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.05);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+ 
+@keyframes pulse {
+	0% {
+		transform: scale(1);
+	}
+	50% {
+		transform: scale(1.05);
+	}
+	100% {
+		transform: scale(1);
+	}
+}
+
+// 从下方滑入
+@-webkit-keyframes slideUp {
+	0% {
+		transform: translateY(100%);
+	}
+	100% {
+		transform: translateY(0);
+	}
+}
+
+@keyframes slideUp {
+	0% {
+		transform: translateY(100%);
+	}
+	100% {
+		transform: translateY(0);
+	}
+}
+
+// 弹跳效果
+@-webkit-keyframes bounceIn {
+	0%, 20%, 53%, 80%, 100% {
+		animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+		transform: translate3d(0,0,0);
+	}
+	40%, 43% {
+		animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+		transform: translate3d(0, -30px, 0);
+	}
+	70% {
+		animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+		transform: translate3d(0, -15px, 0);
+	}
+	90% {
+		transform: translate3d(0,-4px,0);
+	}
+}
+
+@keyframes bounceIn {
+	0%, 20%, 53%, 80%, 100% {
+		animation-timing-function: cubic-bezier(0.215, 0.610, 0.355, 1.000);
+		transform: translate3d(0,0,0);
+	}
+	40%, 43% {
+		animation-timing-function: cubic-bezier(0.755, 0.050, 0.855, 0.060);
+		transform: translate3d(0, -30px, 0);
+	}
+}
+
+// 闪烁效果
+@keyframes blink {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.3;
+    }
+}
+
+// 动画类
+.fadeInLeft {
+    animation: fadeInLeft 0.4s ease-out;
+}
+
+.fadeInUp {
+    animation: fadeInUp 0.4s ease-out;
+}
+
+.pulse {
+    animation: pulse 1.5s infinite;
+}
+
+.slideUp {
+    animation: slideUp 0.3s ease-out;
+}
+
+.bounceIn {
+    animation: bounceIn 0.6s ease-out;
+}
+
+.blink {
+    animation: blink 1s infinite;
+}

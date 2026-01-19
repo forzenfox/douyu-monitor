@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { useScroll } from '../../../src/packages/Monitor/hooks/useScroll'
+import { useScroll } from '../../../src/monitor/hooks/useScroll'
 
 describe('useScroll', () => {
   it('should initialize with isLock as false', () => {

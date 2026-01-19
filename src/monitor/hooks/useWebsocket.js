@@ -13,6 +13,10 @@ export function useWebsocket(options, allGiftData) {
     let giftList = ref([]);
     let superchatList = ref([]);
     let commandDanmakuList = ref([]);
+    
+    // 连接状态
+    let isConnected = ref(false);
+    let reconnectCount = ref(0);
 
     let danmakuListSave = [];
     let enterListSave = [];
@@ -113,13 +117,29 @@ export function useWebsocket(options, allGiftData) {
         } */
         
         ws = new Ex_WebSocket_UnLogin(rid, (msg) => {
+            if (!isConnected.value) {
+                isConnected.value = true;
+                reconnectCount.value = 0;
+            }
             handleMsg(msg);
         }, () => {
             // 重连
+            isConnected.value = false;
+            reconnectCount.value++;
             ws.close();
             ws = null;
             connectWs(rid);
         });
+        
+        // WebSocket连接关闭时更新状态
+        ws.onclose = () => {
+            isConnected.value = false;
+        };
+        
+        // WebSocket连接错误时更新状态
+        ws.onerror = () => {
+            isConnected.value = false;
+        };
         
         // 启动超级弹幕过期状态更新定时器
         superchatCleanupTimer = setInterval(updateSuperchatExpireStatus, 1000);
@@ -699,5 +719,5 @@ export function useWebsocket(options, allGiftData) {
         };
     }
 
-    return { connectWs, danmakuList, enterList, giftList, superchatList, commandDanmakuList, danmakuListSave, enterListSave, giftListSave, superchatListSave, commandDanmakuListSave }
+    return { connectWs, danmakuList, enterList, giftList, superchatList, commandDanmakuList, danmakuListSave, enterListSave, giftListSave, superchatListSave, commandDanmakuListSave, isConnected, reconnectCount }
 }
