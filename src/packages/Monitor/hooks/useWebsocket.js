@@ -305,17 +305,22 @@ export function useWebsocket(options, allGiftData) {
                     // 语音弹幕
                     // 基于语音价格计算
                     price = data.cprice ? Number(data.cprice) / 100 : 10;
-                    txt = data.txt || "";
+                    // 优先从chatmsg对象中获取文本内容
+                    const chatmsg = data.chatmsg || {};
+                    txt = chatmsg.txt || data.txt || "";
                     console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 语音弹幕，原始价格：${data.cprice}，转换后：${price}，内容：${txt}`);
                     break;
             }
             
             // 生成超级弹幕
+            // 优先从chatmsg对象中获取用户信息
+            const chatmsg = data.chatmsg || {};
             const superchat = generateSuperchat({
                 ...data,
+                chatmsg: chatmsg,
                 txt: txt,
-                nn: data.nn || data.userName || "匿名用户",
-                avatar: data.ic || data.avatar || "",
+                nn: chatmsg.nn || data.nn || data.userName || "匿名用户",
+                avatar: chatmsg.ic || data.ic || data.avatar || "",
                 uid: data.uid || data.userId || Math.random().toString(36).substr(2, 9)
             }, price);
             
