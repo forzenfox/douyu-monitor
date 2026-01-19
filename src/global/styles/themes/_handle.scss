@@ -25,11 +25,27 @@ $theme-map: null;
 @mixin backgroundColor($color) {
   @include themeify {
     background: themed($color);
+    transition: background-color 0.3s ease;
   }
 }
 
 @mixin fontColor($color) {
   @include themeify {
     color: themed($color);
+    transition: color 0.3s ease;
+  }
+}
+
+@mixin borderColor($color) {
+  @include themeify {
+    border-color: themed($color);
+    transition: border-color 0.3s ease;
+  }
+}
+
+@mixin boxShadowColor($color) {
+  @include themeify {
+    box-shadow: themed($color);
+    transition: box-shadow 0.3s ease;
   }
 }

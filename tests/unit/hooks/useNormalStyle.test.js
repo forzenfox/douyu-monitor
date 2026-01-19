@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { useNormalStyle } from '../../../src/packages/Monitor/hooks/useNormalStyle'
+import { useNormalStyle } from '../../../src/monitor/hooks/useNormalStyle'
 import { ref } from 'vue'
 
 describe('useNormalStyle', () => {

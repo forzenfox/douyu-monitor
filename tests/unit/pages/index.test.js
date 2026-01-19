@@ -1,19 +1,19 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import Index from '../../../src/packages/Monitor/pages/index.vue'
+import Index from '../../../src/monitor/pages/index.vue'
 import { ref } from 'vue'
 
 // 模拟指令弹幕配置组件
-vi.mock('../../../src/packages/Monitor/components/CommandDanmaku/CommandDanmakuConfig.vue', () => ({
+vi.mock('../../../src/monitor/components/CommandDanmaku/CommandDanmakuConfig.vue', () => ({
   default: {
     name: 'CommandDanmakuConfig',
     props: ['options'],
-    template: '<div class="command-danmaku-config"></div>'
+    template: '<div class="mock-command-danmaku-config"></div>'
   }
 }))
 
 // 模拟指令弹幕组件
-vi.mock('../../../src/packages/Monitor/components/CommandDanmaku/CommandDanmaku.vue', () => ({
+vi.mock('../../../src/monitor/components/CommandDanmaku/CommandDanmaku.vue', () => ({
   default: {
     name: 'CommandDanmaku',
     props: ['options', 'commandDanmakuList', 'maxOrder'],

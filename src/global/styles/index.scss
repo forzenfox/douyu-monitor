@@ -2,17 +2,20 @@
 @use "@/global/utils/dydata/fansLevel.scss";
 @use "@/global/utils/dydata/roomAdmin.scss";
 @use "@/global/utils/dydata/userLevel.scss";
+@use "./animations.scss" as *;
 
 * {
     padding: 0;
     margin: 0;
+    box-sizing: border-box;
 }
 
 html, body, #app {
     height: 100%;
     width: 100%;
     overflow: hidden;
-    font-family: "微软雅黑";
+    font-family: "微软雅黑", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    transition: all 0.3s ease;
 }
 
  /*滚动条样式*/
@@ -24,35 +27,201 @@ html, body, #app {
     overflow: -moz-scrollbars-none;
 }
 
+/* 现代化控件样式 */
 .van-checkbox--horizontal {
     margin-bottom: 1px;
     margin-top: 1px;
 }
 
-@-webkit-keyframes fadeInLeft {
-	0% {
-		opacity: .4;
-		-webkit-transform: translateX(30px);
-	}	
-	100% {
-		opacity: 1;
-		-webkit-transform: translateX(0);
-	}
-}
- 
-@keyframes fadeInLeft {
-	0% {
-		opacity: .4;
-		transform: translateX(30px);
-	}	
-	100% {
-		opacity: 1;
-		transform: translateX(0);
-	}
+/* 优化Vant按钮样式 */
+.van-button {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    &:active {
+        transform: translateY(0);
+    }
 }
 
-.fadeInLeft {
-    animation: fadeInLeft 0.45s;
+/* 优化Vant滑块样式 */
+.van-slider {
+    .van-slider__bar {
+        border-radius: 4px;
+        background: linear-gradient(90deg, #1989fa, #52c41a);
+    }
+    
+    .van-slider__button {
+        width: 20px;
+        height: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        transition: all 0.2s ease;
+        
+        &:active {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+    }
+}
+
+/* 优化Vant开关样式 */
+.van-switch {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    
+    &--on {
+        background-color: #1989fa;
+    }
+    
+    &__button {
+        width: 20px;
+        height: 20px;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        
+        &::after {
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+    }
+}
+
+/* 优化Vant复选框样式 */
+.van-checkbox {
+    .van-checkbox__icon {
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        
+        &:active {
+            transform: scale(0.9);
+        }
+    }
+    
+    .van-checkbox__label {
+        font-size: 14px;
+        color: #333;
+    }
+}
+
+/* 优化Vant单选框样式 */
+.van-radio {
+    .van-radio__icon {
+        border-radius: 50%;
+        transition: all 0.2s ease;
+        
+        &:active {
+            transform: scale(0.9);
+        }
+    }
+    
+    .van-radio__label {
+        font-size: 14px;
+        color: #333;
+    }
+}
+
+/* 优化Vant标签页样式 */
+.van-tabs {
+    .van-tabs__nav {
+        background: transparent;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .van-tab {
+        font-size: 14px;
+        color: #666;
+        transition: all 0.2s ease;
+        
+        &--active {
+            color: #1989fa;
+            font-weight: 600;
+        }
+    }
+    
+    .van-tabs__line {
+        background-color: #1989fa;
+        border-radius: 2px;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+}
+
+/* 优化Vant字段样式 */
+.van-field {
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+    
+    .van-field__label {
+        font-size: 14px;
+        color: #333;
+        font-weight: 500;
+    }
+    
+    .van-field__control {
+        font-size: 14px;
+        color: #666;
+    }
+}
+
+/* 优化Vant对话框样式 */
+.van-dialog {
+    border-radius: 12px;
+    overflow: hidden;
+    
+    .van-dialog__header {
+        padding: 20px 20px 12px;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    
+    .van-dialog__content {
+        padding: 0 20px 20px;
+        font-size: 14px;
+        color: #666;
+    }
+    
+    .van-dialog__footer {
+        padding: 0 20px 20px;
+        
+        .van-button {
+            margin-left: 12px;
+        }
+    }
+}
+
+/* 为所有动态生成的元素添加过渡效果 */
+.item {
+    transition: all 0.3s ease;
+    
+    &:hover {
+        transform: translateY(-1px);
+        opacity: 0.9;
+    }
+}
+
+/* 优化高亮效果的过渡动画 */
+.highlight-day,
+.highlight-night,
+.noble-day,
+.noble-night,
+.super-day,
+.super-night {
+    transition: all 0.3s ease;
+    animation: pulse 1s ease-in-out;
+}
+
+/* 弹窗动画 */
+.van-popup {
+    animation: slideUp 0.3s ease-out;
+    backdrop-filter: blur(10px);
+}
+
+/* 平滑滚动效果 */
+.monitor > * {
+    scroll-behavior: smooth;
 }
 
 .gobottom {
@@ -67,4 +236,55 @@ html, body, #app {
 	border-radius: 15px;
 	text-align: center;
 	line-height: 25px;
+	transition: all 0.3s ease;
+	
+	&:hover {
+		background-color: rgba(255, 119, 0, 0.9);
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(255, 119, 0, 0.3);
+	}
+}
+
+/* 夜间模式下的控件样式适配 */
+[data-theme="night"] {
+    .van-checkbox__label,
+    .van-radio__label,
+    .van-field__label {
+        color: #fff;
+    }
+    
+    .van-field__control {
+        color: #ccc;
+    }
+    
+    .van-tabs {
+        .van-tabs__nav {
+            border-bottom-color: #3a3a3a;
+        }
+        
+        .van-tab {
+            color: #aaa;
+            
+            &--active {
+                color: #1989fa;
+            }
+        }
+    }
+    
+    .van-field {
+        border-bottom-color: #3a3a3a;
+    }
+    
+    .van-dialog {
+        background-color: #2a2a2a;
+        color: #fff;
+        
+        .van-dialog__header {
+            color: #fff;
+        }
+        
+        .van-dialog__content {
+            color: #ccc;
+        }
+    }
 }

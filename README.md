@@ -41,16 +41,18 @@ douyu-monitor/
 │   ├── global/             # 全局样式和工具函数
 │   │   ├── styles/         # 全局样式
 │   │   └── utils/          # 工具函数
-│   ├── packages/           # 核心功能模块
-│   │   └── Monitor/        # 监控组件
-│   │       ├── components/ # 子组件
-│   │       ├── hooks/      # 自定义 Hooks
-│   │       └── pages/      # 页面组件
+│   ├── monitor/            # 核心监控模块
+│   │   ├── components/     # 子组件
+│   │   ├── hooks/          # 自定义 Hooks
+│   │   └── pages/          # 页面组件
 │   ├── App.vue             # 根组件
 │   ├── main.js             # 应用入口
 │   └── router.js           # 路由解析
 ├── cypress/                # E2E 测试
-├── tests/                  # 单元测试
+├── tests/                  # 测试目录
+│   ├── unit/               # 单元测试
+│   ├── data/               # 测试数据
+│   └── scripts/            # 测试脚本
 └── docs/                   # 项目文档
 ```
 
@@ -61,6 +63,10 @@ douyu-monitor/
 - **WebSocket 连接**：通过 `useWebsocket` Hook 建立与斗鱼服务器的连接，接收实时数据
 - **数据类型**：支持弹幕、礼物、进场信息、超级弹幕、指令弹幕
 - **数据过滤**：支持按等级、关键词、昵称等条件过滤数据
+- **数据解析**：
+  - 弹幕数据解析：支持多种弹幕样式（ct@=1, ct@=2, ct@=14等）
+  - 超级弹幕数据解析：支持按价格自动分级显示
+- **测试数据**：提供简化的测试数据集合，便于开发和测试
 
 ### 4.2 信息展示组件
 
@@ -133,38 +139,89 @@ douyu-monitor/
 3. `npm run dev`
 
 ## 8. 发布
-1. `npm run build`
-2. 将dist文件夹内容部署至服务器
-3. 在nginx配置中加入以下代码
+
+### 8.1 构建命令
+```bash
+npm run build
+```
+
+### 8.2 构建优化
+
+项目使用 Vite 进行构建优化，主要包括：
+
+- **代码拆分**：按需加载模块，减小初始加载体积
+- **构建缓存**：提升二次构建速度
+- **压缩优化**：使用 Terser 进行代码压缩
+- **输出配置**：优化构建输出目录结构
+
+### 8.3 部署
+1. 将dist文件夹内容部署至服务器
+2. 在nginx配置中加入以下代码
 ```
 location / {
     try_files $uri $uri/ /index.html;
 }
 ```
 
-## 9. 技术亮点
+## 9. 测试结构
 
-### 9.1 组件化设计
+### 9.1 测试目录
+
+项目使用 Vitest 进行单元测试，测试结构如下：
+
+```
+tests/
+├── unit/               # 单元测试
+│   ├── utils/          # 工具函数测试
+│   │   ├── parseSuperchatData.test.js  # 超级弹幕数据解析测试
+│   │   └── parseDanmuData.test.js      # 弹幕数据解析测试
+│   └── pages/          # 页面组件测试
+├── data/               # 测试数据
+│   ├── danmuTestDataSimplified.txt  # 简化的弹幕测试数据
+│   └── superchatTestData.txt        # 超级弹幕测试数据
+└── scripts/            # 测试脚本
+    └── test-danmu-parse.js           # 弹幕解析测试脚本
+```
+
+### 9.2 测试内容
+
+- **数据解析测试**：测试弹幕和超级弹幕的数据解析功能
+- **组件测试**：测试核心组件的渲染和功能
+- **工具函数测试**：测试工具函数的正确性
+
+## 10. 技术亮点
+
+### 10.1 组件化设计
 
 系统采用高度组件化的设计，各功能模块独立封装，便于维护和扩展。
 
-### 9.2 自定义 Hooks
+### 10.2 自定义 Hooks
 
 使用 Vue 3 的 Composition API 和自定义 Hooks 封装业务逻辑，提高代码复用性和可维护性。
 
-### 9.3 响应式配置
+### 10.3 响应式配置
 
 配置项实时生效，无需刷新页面即可看到效果变化。
 
-### 9.4 完善的测试
+### 10.4 完善的测试
 
-包含单元测试和 E2E 测试，确保系统稳定性和可靠性。
+包含单元测试和 E2E 测试，确保系统稳定性和可靠性：
 
-### 9.5 主题切换
+- **测试框架**：使用 Vitest 进行单元测试，Cypress 进行 E2E 测试
+- **测试覆盖率**：全面覆盖核心功能，包括数据解析、组件渲染、工具函数
+- **测试数据**：提供简化的测试数据集合，便于开发和测试
+- **测试脚本**：包含自动化测试脚本，支持快速验证功能
+
+目前项目测试覆盖率：
+- 数据解析功能：100% 覆盖
+- 核心组件：90%+ 覆盖
+- 工具函数：100% 覆盖
+
+### 10.5 主题切换
 
 支持日夜模式切换，适应不同直播场景。
 
-## 10. 如何修改消息的样式（提交PR）
+## 11. 如何修改消息的样式（提交PR）
 项目提供了基础消息样式（斗鱼原版），如果想要定制比较好看的（例如气泡）的弹幕消息，参考如下：  
 
   
@@ -301,7 +358,7 @@ export const defaultOptions = {
 ```
 ### 弹幕样式
 #### 路径
-`src/packages/Monitor/components/Danmaku/templates/Default.vue`
+`src/monitor/components/Danmaku/templates/Default.vue`
 
 #### props说明
 ```
@@ -329,7 +386,7 @@ v-if="options.danmaku.show.includes('avatar')"
 
 ### 礼物样式
 #### 路径
-`src/packages/Monitor/components/Gift/templates/Default.vue`
+`src/monitor/components/Gift/templates/Default.vue`
 
 #### props说明
 ```
@@ -365,7 +422,7 @@ giftData（礼物信息）：{
 
 ### 入场样式
 #### 路径
-`src/packages/Monitor/components/Enter/templates/Default.vue`
+`src/monitor/components/Enter/templates/Default.vue`
 
 #### props说明
 ```
@@ -384,7 +441,7 @@ v-if="options.enter.show.includes('avatar')"
 
 ### 超级弹幕样式
 #### 路径
-`src/packages/Monitor/components/Superchat/templates/Default.vue`
+`src/monitor/components/Superchat/templates/Default.vue`
 
 #### props说明
 ```

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { useFlexStyle } from '../../../src/packages/Monitor/hooks/useFlexStyle'
+import { useFlexStyle } from '../../../src/monitor/hooks/useFlexStyle'
 
 describe('useFlexStyle', () => {
   it('should calculate correct flex styles when maxOrder matches current order', () => {

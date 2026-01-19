@@ -4,12 +4,20 @@ $themes: (
     txtColor: rgb(51,51,51), // 弹幕颜色
     contentColor: rgb(153,153,153), // 文本颜色
     nicknameColor: #2B94FF, // 昵称颜色
+    borderColor: #f0f0f0, // 边框颜色
+    hoverColor: #f5f5f5, // 悬停颜色
+    highlightColor: #fff3df, // 高亮颜色
+    boxShadow: rgba(0, 0, 0, 0.1), // 阴影颜色
   ),
   night: (
     backgroundColor: rgb(37,38,42),
     txtColor: rgba(187,187,187,1),
     contentColor: rgb(153,153,153),
     nicknameColor: rgb(255,119,0), // 昵称颜色
+    borderColor: #3a3a3a, // 边框颜色
+    hoverColor: #3a3a3a, // 悬停颜色
+    highlightColor: rgb(55,55,55), // 高亮颜色
+    boxShadow: rgba(0, 0, 0, 0.3), // 阴影颜色
   )
 );
 

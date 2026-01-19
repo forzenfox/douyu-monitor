@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
-import Superchat from '../../../src/packages/Monitor/components/Superchat/Superchat.vue'
+import Superchat from '../../../src/monitor/components/Superchat/Superchat.vue'
 
 describe('Superchat Component', () => {
   it('should render correctly with default props', () => {
