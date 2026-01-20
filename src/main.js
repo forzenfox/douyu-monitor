@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 
-import '@vant/touch-emulator'
+// import '@vant/touch-emulator' // 注释掉触摸模拟器引入，仅在开发环境中需要
 
 // 引入全局样式
 import "@/global/styles/index.scss"
@@ -14,7 +14,7 @@ async function initApp() {
     let info = await parseUrl();
     window.rid = info.rid;
     window.options = info.options;
-    logInfo();
+    // logInfo(); // 注释掉日志函数调用，避免在生产环境中打印项目信息
     createApp(App).mount('#app')
 }
 

@@ -1016,7 +1016,7 @@ export function useWebsocket(options, allGiftData) {
 
     // 直接调用模拟测试函数（用于本地调试，生产环境请注释）
     // 调用模拟测试函数
-    mockSuperchatTest();
+    // mockSuperchatTest(); // 注释掉测试函数调用，避免在生产环境中执行
 
 
     return { connectWs, danmakuList, enterList, giftList, superchatList, commandDanmakuList, danmakuListSave, enterListSave, giftListSave, superchatListSave, commandDanmakuListSave, isConnected, reconnectCount }
