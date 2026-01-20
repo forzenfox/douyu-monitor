@@ -7,10 +7,10 @@ export const defaultOptions = {
     align: "left",
     // 每个模块的占比%
     size: {
-        enter: 15,
-        gift: 15,
-        danmaku: 25,
-        superchat: 25,
+        enter: 12,
+        gift: 13,
+        danmaku: 35,
+        superchat: 20,
         commandDanmaku: 20
     },
     // 每个模块的排序
@@ -23,7 +23,7 @@ export const defaultOptions = {
     },
     // 每个模块开关，按顺序排
     switch: ["danmaku", "superchat", "commandDanmaku"], // 默认不勾选进场和礼物
-    // 数据阈值
+    // 消息上限
     threshold: 100,
     // 字号
     fontSize: 14,
