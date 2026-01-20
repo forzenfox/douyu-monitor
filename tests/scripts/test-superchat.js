@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
+// 导入配置文件
+const { defaultOptions } = require('../../src/monitor/options.js');
+
 /**
  * 解析超级弹幕数据文件
  * @param {string} filePath - 数据文件路径
@@ -50,20 +53,34 @@ function parseSuperchatData(filePath) {
         
         const chatmsgData = parseChatmsg(chatmsg);
         
+        // 计算价格（元）
+        const price = parseInt(crealPriceMatch?.[1] || cpriceMatch?.[1] || '0') / 100;
+        
+        // 从配置中获取持续时间
+        let duration = 60; // 默认1分钟
+        const superchatOptions = defaultOptions?.superchat?.options || [];
+        for (const option of superchatOptions) {
+          if (price >= option.minPrice) {
+            duration = option.time || 60;
+            break;
+          }
+        }
+        
         // 生成超级弹幕数据格式
         return {
           nn: chatmsgData.nn || '匿名用户',
           avatar: chatmsgData.ic || '',
           txt: chatmsgData.txt || '暂无内容',
-          price: parseInt(crealPriceMatch?.[1] || cpriceMatch?.[1] || '0') / 100, // 转换为元
+          price: price, // 转换为元
           level: 0, // 从价格计算等级
           bgColor: { 
-            header: getHeaderColor(parseInt(crealPriceMatch?.[1] || cpriceMatch?.[1] || '0') / 100), 
-            body: getBodyColor(parseInt(crealPriceMatch?.[1] || cpriceMatch?.[1] || '0') / 100) 
+            header: getHeaderColor(price), 
+            body: getBodyColor(price) 
           },
           textColor: '#FFFFFF',
           nicknameColor: '#FFFFFF',
           key: `test-key-${Math.random().toString(36).substring(2, 10)}`,
+          duration: duration, // 添加持续时间字段
           createdAt: parseInt(nowMatch?.[1] || Date.now().toString()),
           isExpired: false
         };
@@ -84,10 +101,12 @@ function parseSuperchatData(filePath) {
  * @returns {string} 头部颜色
  */
 function getHeaderColor(price) {
-  if (price >= 100) return 'rgb(208,0,0)';
-  if (price >= 50) return 'rgb(194,24,91)';
-  if (price >= 30) return 'rgb(230,81,0)';
-  if (price >= 10) return 'rgb(0,191,165)';
+  const superchatOptions = defaultOptions?.superchat?.options || [];
+  for (const option of superchatOptions) {
+    if (price >= option.minPrice) {
+      return option.bgColor?.header || 'rgb(21,101,192)';
+    }
+  }
   return 'rgb(21,101,192)';
 }
 
@@ -97,10 +116,12 @@ function getHeaderColor(price) {
  * @returns {string} 身体颜色
  */
 function getBodyColor(price) {
-  if (price >= 100) return 'rgb(230,33,23)';
-  if (price >= 50) return 'rgb(233,30,99)';
-  if (price >= 30) return 'rgb(245,124,0)';
-  if (price >= 10) return 'rgb(29,233,182)';
+  const superchatOptions = defaultOptions?.superchat?.options || [];
+  for (const option of superchatOptions) {
+    if (price >= option.minPrice) {
+      return option.bgColor?.body || 'rgb(30,136,229)';
+    }
+  }
   return 'rgb(30,136,229)';
 }
 

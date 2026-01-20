@@ -79,7 +79,13 @@ export const defaultOptions = {
         // 显示选项
         show: ["fans", "noble", "roomAdmin", "diamond", "time"],
         // 是否语音播报
-        speak: false
+        speak: false,
+        // 颜色价格配置（不在界面显示）
+        options: [
+            { minPrice: 500, time: 300, bgColor: { header: "rgb(230,81,0)", body: "rgb(245,124,0)" } }, // 橙色 5分钟
+            { minPrice: 50, time: 120, bgColor: { header: "rgb(208,0,0)", body: "rgb(230,33,23)" } }, // 红色 2分钟
+            { minPrice: 0, time: 60, bgColor: { header: "rgb(21,101,192)", body: "rgb(30,136,229)" } } // 蓝色 1分钟
+        ]
     },
     // 指令弹幕设置
     commandDanmaku: {
