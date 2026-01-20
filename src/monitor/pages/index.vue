@@ -28,7 +28,7 @@
             <div @click="onClickRestOptions">
                 <svg t="1636947206527" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="14990" width="24" height="24"><path d="M890.092308 988.002462a37.257846 37.257846 0 0 1-25.67877-27.72677c-53.326769-236.937846-209.526154-305.467077-408.576-368.64l-55.847384 182.744616a37.415385 37.415385 0 0 1-67.741539 8.428307L65.851077 353.516308a37.257846 37.257846 0 0 1 15.281231-53.090462L549.021538 70.656a37.257846 37.257846 0 0 1 40.96 5.198769 37.651692 37.651692 0 0 1 11.500308 39.384616l-47.261538 154.702769c92.317538 34.264615 169.905231 87.985231 230.636307 159.901538 54.429538 64.275692 95.310769 142.966154 121.619693 233.787077 42.771692 147.692308 33.004308 277.897846 31.744 292.312616v0.157538a37.336615 37.336615 0 0 1-34.816 33.634462 40.329846 40.329846 0 0 1-13.39077-1.732923zM352.492308 673.476923l42.692923-139.657846a37.494154 37.494154 0 0 1 46.710154-24.733539c129.969231 39.778462 233.314462 78.769231 314.998153 140.288 35.052308 26.151385 65.851077 56.871385 91.766154 91.608616a733.026462 733.026462 0 0 0-14.493538-58.683077c-53.563077-182.114462-166.990769-300.819692-337.289846-352.886154a38.281846 38.281846 0 0 1-22.291693-18.432 36.312615 36.312615 0 0 1-2.599384-28.356923l32.610461-106.653538-353.28 173.292307L352.492308 673.476923z" fill="#8a8a8a" p-id="14991"></path></svg>
             </div>
-            <div @click="onClickSaveData">
+            <div v-if="options.isSaveData" @click="onClickSaveData">
                 <svg t="1641663017225" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="3820" width="24" height="24"><path d="M941.248 352L672 82.752A64 64 0 0 0 626.752 64H128a64 64 0 0 0-64 64v768a64 64 0 0 0 64 64h768a64 64 0 0 0 64-64V397.248A64 64 0 0 0 941.248 352zM256 128h48v160H256V128z m112 0H512v160h-144V128zM256 896v-192h512v192H256z m640 0h-64v-224a32 32 0 0 0-32-32H224a32 32 0 0 0-32 32v224H128V128h64v192a32 32 0 0 0 32 32h320a32 32 0 0 0 32-32V128h50.752L896 397.248V896z" p-id="3821" fill="#8a8a8a"></path></svg>
             </div>
         </div>
@@ -72,7 +72,8 @@
                         <Switch v-model="options.animation" size="20" />
                     </template>
                 </Field>
-                <Field v-model="options.threshold" label="数据上限" type="digit" placeholder="当超过上限 旧数据会被删除"></Field>
+                <Field v-model="options.threshold" label="消息上限" type="digit" placeholder="当超过上限 旧数据会被删除"></Field>
+                
                 <Field label="数据保存">
                     <template #input>
                         <Switch v-model="options.isSaveData" size="20" />
@@ -237,22 +238,30 @@ onMounted(async () => {
     options.value.order.superchat = 3;
     options.value.order.commandDanmaku = 4;
     
-    // 确保指令弹幕关键词的完整性，修复默认颜色不匹配问题
-    if (options.value.commandDanmaku && options.value.commandDanmaku.keywords) {
-        options.value.commandDanmaku.keywords = options.value.commandDanmaku.keywords.map(keyword => {
-            // 如果颜色未定义或为黑色，使用默认颜色
-            if (!keyword.color || keyword.color === '#000000') {
-                // 为不同的关键词设置不同的默认颜色
-                const defaultColors = {
-                    '点歌': '#007bff',
-                    '转盘': '#28a745',
-                    '抽奖': '#ffc107',
-                    '投票': '#17a2b8'
-                };
-                keyword.color = defaultColors[keyword.name] || '#007bff';
-            }
-            return keyword;
-        });
+    // 确保指令弹幕配置的完整性
+    if (options.value.commandDanmaku) {
+        // 确保enabled属性存在
+        if (options.value.commandDanmaku.enabled === undefined) {
+            options.value.commandDanmaku.enabled = true;
+        }
+        
+        // 确保指令弹幕关键词的完整性，修复默认颜色不匹配问题
+        if (options.value.commandDanmaku.keywords) {
+            options.value.commandDanmaku.keywords = options.value.commandDanmaku.keywords.map(keyword => {
+                // 如果颜色未定义或为黑色，使用默认颜色
+                if (!keyword.color || keyword.color === '#000000') {
+                    // 为不同的关键词设置不同的默认颜色
+                    const defaultColors = {
+                        '点歌': '#007bff',
+                        '转盘': '#28a745',
+                        '抽奖': '#ffc107',
+                        '投票': '#17a2b8'
+                    };
+                    keyword.color = defaultColors[keyword.name] || '#007bff';
+                }
+                return keyword;
+            });
+        }
     }
     
     // 初始化礼物数据
@@ -268,6 +277,9 @@ onMounted(async () => {
     window.giftDataUpdateTimer = updateTimer;
      
     connectWs(rid);
+    
+    // 动态更新网页title
+    document.title = `${rid} - DouyuEx弹幕助手`;
     
     // 组件卸载时清除定时器
     onBeforeUnmount(() => {

@@ -17,11 +17,12 @@
         暂无指令弹幕
       </div>
     </div>
+    <div v-show="isLock" class="gobottom" @click.stop="goToScrollBottom(domCommandDanmaku.value?.querySelector('.command-danmaku-list'))">回到底部</div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, onUpdated } from 'vue'
 import Default from "./templates/Default.vue"
 
 import { useFlexStyle } from "../../hooks/useFlexStyle.js"
@@ -79,6 +80,13 @@ const handleCommandClick = (id) => {
     props.commandDanmakuList[index].isExpired = true;
   }
 };
+
+onUpdated(() => {
+  const listDom = domCommandDanmaku.value?.querySelector('.command-danmaku-list');
+  if (listDom) {
+    onScrollUpdate(listDom);
+  }
+});
 
 onMounted(() => {
   const listDom = domCommandDanmaku.value?.querySelector('.command-danmaku-list');

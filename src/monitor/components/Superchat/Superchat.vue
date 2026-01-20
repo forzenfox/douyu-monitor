@@ -7,10 +7,12 @@
             :data="item"
             :mode="options.mode"
             :showAnimation="options.animation"
+            :options="options"
         ></Default>
         <div v-if="superchatList.length === 0" class="empty-tip">
             暂无超级弹幕
         </div>
+        <div v-show="isLock" class="gobottom" @click.stop="goToScrollBottom(dom_superchat)">回到底部</div>
     </div>
 </template>
 
@@ -20,6 +22,7 @@ import Default from "./templates/Default.vue"
 
 import { useFlexStyle } from "../../hooks/useFlexStyle.js"
 import { useBorderStyle } from "../../hooks/useBorderStyle.js"
+import { useScroll } from '../../hooks/useScroll.js'
 
 let props = defineProps({
     maxOrder: {
@@ -36,13 +39,22 @@ let props = defineProps({
 let dom_superchat = ref(null);
 let { flexStyle, orderStyle, justifyContentStyle, textAlignStyle } = useFlexStyle(props, "superchat");
 let { borderBottomStyle, borderRightStyle } = useBorderStyle(props, "superchat");
+let { isLock, onScroll, onScrollUpdate, goToScrollBottom } = useScroll();
 
 onUpdated(() => {
-    // 可以添加滚动到底部等逻辑
+    onScrollUpdate(dom_superchat.value);
 })
 
 onMounted(() => {
-    // 可以添加事件监听等逻辑
+    // 添加滚动事件监听
+    if (dom_superchat.value) {
+        dom_superchat.value.addEventListener("mousewheel", () => {
+            onScroll(dom_superchat.value);
+        });
+        dom_superchat.value.addEventListener("touchmove", () => {
+            onScroll(dom_superchat.value);
+        });
+    }
 })
 
 </script>

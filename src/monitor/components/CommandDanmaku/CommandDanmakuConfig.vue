@@ -17,6 +17,24 @@
       </div>
     </div>
     
+    <!-- 语音提示设置 -->
+    <div class="field-item">
+      <div class="field-label">语音提示</div>
+      <div class="field-content">
+        <div class="speak-switch-wrapper">
+          <label class="switch-label">
+            <input 
+              type="checkbox" 
+              class="speak-switch" 
+              v-model="localOptions.speak" 
+              @change="handleOptionChange"
+            >
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+    
     <!-- 关键词管理 -->
     <div class="keyword-management">
       <div class="management-title">关键词管理</div>
@@ -299,6 +317,84 @@ const addPresetKeyword = (template) => {
     outline: none;
     border-color: #1989fa;
   }
+}
+
+/* 语音提示开关容器样式 */
+.speak-switch-wrapper {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+/* 开关标签样式 */
+.switch-label {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+/* 隐藏原生checkbox */
+.speak-switch {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* 开关滑块样式 */
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ebedf0;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  
+  [data-theme="night"] & {
+    background-color: #4a4a4a;
+  }
+}
+
+/* 滑块内圆点样式 */
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  
+  [data-theme="night"] & {
+    background-color: #3a3a3a;
+  }
+}
+
+/* 开关激活状态 */
+.speak-switch:checked + .switch-slider {
+  background-color: #1989fa;
+}
+
+/* 滑块激活状态 */
+.speak-switch:checked + .switch-slider:before {
+  transform: translateX(20px);
+  background-color: white;
+  
+  [data-theme="night"] & {
+    background-color: #fff;
+  }
+}
+
+/* 开关激活状态下的滑块颜色 */
+[data-theme="night"] .speak-switch:checked + .switch-slider {
+  background-color: #40a9ff;
 }
 
 /* 关键词列表样式 */
