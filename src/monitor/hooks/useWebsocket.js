@@ -29,6 +29,18 @@ export function useWebsocket(options, allGiftData) {
     
     // 超级弹幕过期清理定时器
     let superchatCleanupTimer = null;
+    
+    // WebSocket重连相关配置
+    let reconnectTimer = null;
+    const MAX_RECONNECT_ATTEMPTS = 50; // 最大重连次数
+    const BASE_RECONNECT_INTERVAL = 1000; // 基础重连间隔（毫秒）
+    const MAX_RECONNECT_INTERVAL = 60000; // 最大重连间隔（毫秒）
+    
+    // 心跳检测相关
+    let heartbeatTimer = null;
+    const HEARTBEAT_INTERVAL = 30000; // 心跳间隔（毫秒）
+    let lastHeartbeatTime = 0;
+    let lastMessageTime = 0;
 
     /**
      * 更新超级弹幕的过期状态
@@ -74,20 +86,104 @@ export function useWebsocket(options, allGiftData) {
         console.debug(`[Mock] 生成了一条测试超级弹幕，价格：${price}，当前列表长度：${superchatList.value.length}`);
     }; */
 
+    /**
+     * 计算重连间隔，使用指数退避策略
+     * @returns {number} 重连间隔时间（毫秒）
+     */
+    const calculateReconnectInterval = () => {
+        // 指数退避算法：base * (2 ^ (reconnectCount - 1)) + 随机值
+        const interval = Math.min(
+            BASE_RECONNECT_INTERVAL * Math.pow(2, reconnectCount.value - 1),
+            MAX_RECONNECT_INTERVAL
+        );
+        // 添加随机抖动，避免多个客户端同时重连
+        const jitter = Math.random() * 1000;
+        return interval + jitter;
+    };
+
+    /**
+     * 清理所有资源
+     */
+    const cleanupResources = () => {
+        // 清理WebSocket连接
+        if (ws) {
+            ws.close();
+            ws = null;
+        }
+        
+        // 清理重连定时器
+        if (reconnectTimer) {
+            clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+        }
+        
+        // 清理心跳定时器
+        if (heartbeatTimer) {
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+        }
+        
+        // 清理超级弹幕过期清理定时器
+        if (superchatCleanupTimer) {
+            clearInterval(superchatCleanupTimer);
+            superchatCleanupTimer = null;
+        }
+    };
+
+    /**
+     * 启动心跳检测
+     * @param {string} rid - 房间号
+     */
+    const startHeartbeat = (rid) => {
+        // 清理旧的心跳定时器
+        if (heartbeatTimer) {
+            clearInterval(heartbeatTimer);
+            heartbeatTimer = null;
+        }
+        
+        // 启动新的心跳定时器
+        heartbeatTimer = setInterval(() => {
+            const now = Date.now();
+            // 检查是否超过心跳间隔，如果超过则重新连接
+            if (now - lastHeartbeatTime > HEARTBEAT_INTERVAL * 2) {
+                console.debug("[WebSocket] 心跳超时，重新连接...");
+                reconnectCount.value++;
+                reconnectWs(rid);
+            }
+        }, HEARTBEAT_INTERVAL);
+    };
+
+    /**
+     * 重新连接WebSocket
+     * @param {string} rid - 房间号
+     */
+    const reconnectWs = (rid) => {
+        if (reconnectCount.value >= MAX_RECONNECT_ATTEMPTS) {
+            console.debug(`[WebSocket] 已达到最大重连次数(${MAX_RECONNECT_ATTEMPTS})，停止重连`);
+            isConnected.value = false;
+            return;
+        }
+        
+        // 清理旧资源
+        cleanupResources();
+        
+        // 计算重连间隔
+        const interval = calculateReconnectInterval();
+        console.debug(`[WebSocket] 尝试重连(${reconnectCount.value}/${MAX_RECONNECT_ATTEMPTS})，间隔${interval}ms`);
+        
+        // 设置重连定时器
+        reconnectTimer = setTimeout(() => {
+            connectWs(rid);
+        }, interval);
+    };
+
     const connectWs = (rid) => {
         if (rid === "") {
             return;
         }
         
-        // 清理旧的WebSocket和定时器
-        if (ws) {
-            ws.close();
-            ws = null;
-        }
-        if (superchatCleanupTimer) {
-            clearInterval(superchatCleanupTimer);
-            superchatCleanupTimer = null;
-        }
+        // 清理旧资源
+        cleanupResources();
         
         /* // 开发环境下使用mock数据（自动调试）
         if (import.meta.env.DEV) {
@@ -110,33 +206,49 @@ export function useWebsocket(options, allGiftData) {
             };
         } */
         
-        ws = new Ex_WebSocket_UnLogin(rid, (msg) => {
-            if (!isConnected.value) {
-                isConnected.value = true;
-                reconnectCount.value = 0;
-            }
-            handleMsg(msg);
-        }, () => {
-            // 重连
+        try {
+            ws = new Ex_WebSocket_UnLogin(rid, (msg) => {
+                // 更新最后消息时间
+                lastMessageTime = Date.now();
+                
+                if (!isConnected.value) {
+                    isConnected.value = true;
+                    reconnectCount.value = 0;
+                    lastHeartbeatTime = Date.now();
+                    // 连接成功后启动心跳检测
+                    startHeartbeat(rid);
+                }
+                handleMsg(msg);
+            }, () => {
+                // 连接错误，触发重连
+                console.debug("[WebSocket] 连接错误，触发重连");
+                isConnected.value = false;
+                reconnectCount.value++;
+                reconnectWs(rid);
+            });
+            
+            // WebSocket连接关闭时更新状态并触发重连
+            ws.onclose = () => {
+                console.debug("[WebSocket] 连接关闭，触发重连");
+                isConnected.value = false;
+                reconnectCount.value++;
+                reconnectWs(rid);
+            };
+            
+            // WebSocket连接错误时更新状态
+            ws.onerror = () => {
+                console.debug("[WebSocket] 连接错误");
+                isConnected.value = false;
+            };
+            
+            // 启动超级弹幕过期状态更新定时器
+            superchatCleanupTimer = setInterval(updateSuperchatExpireStatus, 1000);
+        } catch (error) {
+            console.error("[WebSocket] 连接失败:", error);
             isConnected.value = false;
             reconnectCount.value++;
-            ws.close();
-            ws = null;
-            connectWs(rid);
-        });
-        
-        // WebSocket连接关闭时更新状态
-        ws.onclose = () => {
-            isConnected.value = false;
-        };
-        
-        // WebSocket连接错误时更新状态
-        ws.onerror = () => {
-            isConnected.value = false;
-        };
-        
-        // 启动超级弹幕过期状态更新定时器
-        superchatCleanupTimer = setInterval(updateSuperchatExpireStatus, 1000);
+            reconnectWs(rid);
+        }
     }
 
     /**

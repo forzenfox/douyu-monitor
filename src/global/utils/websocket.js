@@ -12,37 +12,124 @@ class Ex_WebSocket_UnLogin {
         if ("WebSocket" in window) {
             this.timer = 0;
             this.roomid = rid;
-            this.ws = new WebSocket("wss://danmuproxy.douyu.com:850" + String(getRandom(2,5))); // 负载均衡 8502~8504都可以用
-            this.ws.onopen = () => {
-                this.ws.send(WebSocket_Packet("type@=loginreq/roomid@=" + rid));
-                this.ws.send(WebSocket_Packet("type@=joingroup/rid@=" + rid + "/gid@=-9999/"));
-                this.timer = setInterval(() => {
-                    this.ws.send(WebSocket_Packet("type@=mrkl/"));
-                }, 40000)
-                // console.log("WebSocket已连接");
-            };
-            this.ws.onmessage = (e) => { 
-                let reader = new FileReader();
-                reader.onload = () => {
-                    let arr = String(reader.result).split("\0"); // 分包
-                    reader = null;
-                    for (let i = 0; i < arr.length; i++) {
-                        if (arr[i].length > 12) {
-                            // 过滤第一条和心跳包
-                            callback(arr[i]);
-                        }
-                    }
-                };
-                reader.readAsText(e.data);
-            };
-            this.ws.onclose = () => { 
-                callback_error();
-            };
+            this.callback = callback;
+            this.callback_error = callback_error;
+            this.isBackground = false;
+            this.backgroundTimer = null;
+            
+            // 监听页面可见性变化
+            document.addEventListener('visibilitychange', () => {
+                this.isBackground = document.hidden;
+                if (this.isBackground) {
+                    // 页面进入后台，调整心跳间隔
+                    this.adjustHeartbeatForBackground();
+                } else {
+                    // 页面回到前台，恢复正常心跳
+                    this.restoreHeartbeatForForeground();
+                }
+            });
+            
+            this.connect();
         }
     }
+    
+    connect() {
+        this.ws = new WebSocket("wss://danmuproxy.douyu.com:850" + String(getRandom(2,5))); // 负载均衡 8502~8504都可以用
+        this.ws.onopen = () => {
+            this.ws.send(WebSocket_Packet("type@=loginreq/roomid@=" + this.roomid));
+            this.ws.send(WebSocket_Packet("type@=joingroup/rid@=" + this.roomid + "/gid@=-9999/"));
+            this.startHeartbeat();
+            // console.log("WebSocket已连接");
+        };
+        this.ws.onmessage = (e) => { 
+            let reader = new FileReader();
+            reader.onload = () => {
+                let arr = String(reader.result).split("\0"); // 分包
+                reader = null;
+                for (let i = 0; i < arr.length; i++) {
+                    if (arr[i].length > 12) {
+                        // 过滤第一条和心跳包
+                        this.callback(arr[i]);
+                    }
+                }
+            };
+            reader.readAsText(e.data);
+        };
+        this.ws.onclose = () => { 
+            this.stopHeartbeat();
+            this.callback_error();
+        };
+        this.ws.onerror = () => {
+            this.stopHeartbeat();
+            this.callback_error();
+        };
+    }
+    
+    startHeartbeat() {
+        this.stopHeartbeat();
+        // 正常心跳间隔40秒
+        this.timer = setInterval(() => {
+            this.sendHeartbeat();
+        }, 40000);
+    }
+    
+    stopHeartbeat() {
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = 0;
+        }
+        if (this.backgroundTimer) {
+            clearInterval(this.backgroundTimer);
+            this.backgroundTimer = null;
+        }
+    }
+    
+    sendHeartbeat() {
+        try {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(WebSocket_Packet("type@=mrkl/"));
+            }
+        } catch (error) {
+            console.error("[WebSocket] 发送心跳失败:", error);
+            this.callback_error();
+        }
+    }
+    
+    /**
+     * 调整后台运行时的心跳策略
+     */
+    adjustHeartbeatForBackground() {
+        this.stopHeartbeat();
+        // 后台运行时，心跳间隔调整为20秒，更频繁的心跳有助于保持连接
+        this.backgroundTimer = setInterval(() => {
+            this.sendHeartbeat();
+        }, 20000);
+    }
+    
+    /**
+     * 恢复前台运行时的正常心跳
+     */
+    restoreHeartbeatForForeground() {
+        this.startHeartbeat();
+    }
     close() {
-        clearInterval(this.timer);
-        this.ws.close();
+        // 清理所有定时器
+        this.stopHeartbeat();
+        
+        // 移除事件监听器
+        document.removeEventListener('visibilitychange', () => {
+            this.isBackground = document.hidden;
+            if (this.isBackground) {
+                this.adjustHeartbeatForBackground();
+            } else {
+                this.restoreHeartbeatForForeground();
+            }
+        });
+        
+        // 关闭WebSocket连接
+        if (this.ws) {
+            this.ws.close();
+        }
     }
 }
 

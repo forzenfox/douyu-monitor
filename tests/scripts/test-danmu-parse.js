@@ -124,7 +124,10 @@ function parseDanmuData(filePath) {
         }
       }).filter(item => item !== null);
   } catch (error) {
-    console.error('读取或解析文件失败:', error);
+    // 只在非测试环境输出错误日志
+    if (process.env.NODE_ENV !== 'test') {
+      console.error('读取或解析文件失败:', error);
+    }
     return [];
   }
 }

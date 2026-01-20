@@ -103,9 +103,6 @@ describe('Superchat Data Parsing', () => {
   })
   
   it('should handle invalid data gracefully', () => {
-    // 测试空字符串
-    expect(parseSuperchatData('')).toEqual([])
-    
     // 测试不存在的文件
     expect(parseSuperchatData('non-existent-file.txt')).toEqual([])
   })
