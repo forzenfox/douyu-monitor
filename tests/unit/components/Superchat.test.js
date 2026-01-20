@@ -62,7 +62,13 @@ describe('Superchat Component', () => {
         nicknameColor: '#FFFFFF',
         key: 'test-key-1',
         createdAt: Date.now(),
-        isExpired: false
+        isExpired: false,
+        fansName: '测试粉丝牌',
+        fansLv: 10,
+        noble: true,
+        roomAdmin: true,
+        diamond: true,
+        time: Math.floor(Date.now() / 1000)
       },
       {
         nn: '过期用户',
@@ -96,6 +102,11 @@ describe('Superchat Component', () => {
     // 验证第一个超级弹幕显示正常
     expect(superchatItems[0].find('.superchat-nickname').text()).toBe('测试用户')
     expect(superchatItems[0].find('.superchat-message').text()).toBe('这是一条超级弹幕')
+    expect(superchatItems[0].find('.superchat-fans').text()).toBe('测试粉丝牌 Lv10')
+    expect(superchatItems[0].find('.superchat-noble').text()).toBe('贵族')
+    expect(superchatItems[0].find('.superchat-roomAdmin').text()).toBe('房管')
+    expect(superchatItems[0].find('.superchat-diamond').text()).toBe('钻粉')
+    expect(superchatItems[0].find('.superchat-time').exists()).toBe(true)
     
     // 验证第二个超级弹幕显示为过期状态
     expect(superchatItems[1].classes()).toContain('superchat-item--expired')
@@ -159,7 +170,10 @@ describe('Superchat Component', () => {
         nicknameColor: '#FFFFFF',
         key: 'test-key-1',
         createdAt: Date.now(),
-        isExpired: false
+        isExpired: false,
+        fansName: '高级粉丝牌',
+        fansLv: 20,
+        time: Math.floor(Date.now() / 1000)
       },
       {
         nn: '普通用户',
@@ -199,6 +213,10 @@ describe('Superchat Component', () => {
     // 验证背景颜色样式
     expect(highLevelItem.attributes('style')).toContain('rgb(230, 33, 23)')
     expect(normalItem.attributes('style')).toContain('rgb(30, 136, 229)')
+    
+    // 验证粉丝牌和时间显示
+    expect(highLevelItem.find('.superchat-fans').text()).toBe('高级粉丝牌 Lv20')
+    expect(highLevelItem.find('.superchat-time').exists()).toBe(true)
   })
   
   it('should render expired superchats with correct style', () => {
@@ -245,5 +263,62 @@ describe('Superchat Component', () => {
     // 验证过期样式
     expect(superchatItem.classes()).toContain('superchat-item--expired')
     expect(superchatItem.attributes('style')).toContain('rgb(240, 240, 240)')
+  })
+  
+  it('should show/hide elements based on configuration', () => {
+    const options = {
+      size: { superchat: 30 },
+      mode: 'day',
+      animation: true,
+      superchat: {
+        show: ['fans', 'time'], // 只显示粉丝牌和时间
+        options: [
+          { minPrice: 10, time: 30, bgColor: { header: 'rgb(21,101,192)', body: 'rgb(30,136,229)' } }
+        ]
+      }
+    }
+    
+    const superchatList = [
+      {
+        nn: '测试用户',
+        avatar: 'test/avatar.png',
+        txt: '这是一条超级弹幕',
+        price: 200,
+        level: 4,
+        bgColor: { header: 'rgb(230,81,0)', body: 'rgb(245,124,0)' },
+        textColor: '#FFFFFF',
+        nicknameColor: '#FFFFFF',
+        key: 'test-key-1',
+        createdAt: Date.now(),
+        isExpired: false,
+        fansName: '测试粉丝牌',
+        fansLv: 10,
+        noble: true,
+        roomAdmin: true,
+        diamond: true,
+        time: Math.floor(Date.now() / 1000)
+      }
+    ]
+    
+    const maxOrder = 0
+    
+    const wrapper = mount(Superchat, {
+      props: {
+        options,
+        superchatList,
+        maxOrder
+      }
+    })
+    
+    const superchatItem = wrapper.find('.superchat-item')
+    
+    // 验证显示的元素
+    expect(superchatItem.find('.superchat-fans').exists()).toBe(true)
+    expect(superchatItem.find('.superchat-time').exists()).toBe(true)
+    
+    // 验证隐藏的元素
+    expect(superchatItem.find('.superchat-noble').exists()).toBe(false)
+    expect(superchatItem.find('.superchat-roomAdmin').exists()).toBe(false)
+    expect(superchatItem.find('.superchat-diamond').exists()).toBe(false)
   })
 })

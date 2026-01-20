@@ -173,20 +173,37 @@ export function useWebsocket(options, allGiftData) {
 
     /**
      * 解析chatmsg字段，处理@S分隔的子字段
-     * @param {string|Object} chatmsg - chatmsg字段值
+     * @param {string|Object|Array} chatmsg - chatmsg字段值
      * @returns {Object} 解析后的chatmsg对象
      */
     const parseChatmsg = (chatmsg) => {
         if (!chatmsg) return {};
-        if (typeof chatmsg === 'object') return chatmsg;
         
-        // 如果chatmsg是字符串，解析其中的@S分隔的子字段
+        // 处理数组情况
+        if (Array.isArray(chatmsg)) {
+            const result = {};
+            // 遍历数组中的每个对象，合并字段
+            chatmsg.forEach(item => {
+                if (typeof item === 'object' && item !== null) {
+                    Object.assign(result, item);
+                }
+            });
+            return result;
+        }
+        
+        // 处理对象情况
+        if (typeof chatmsg === 'object' && chatmsg !== null) {
+            return chatmsg;
+        }
+        
+        // 处理字符串情况
         const result = {};
         const fields = chatmsg.replace(/@S/g, '&').split('&');
         
         fields.forEach(field => {
             if (!field) return;
             
+            // 处理@A分隔的键值对
             const [key, value] = field.split('@A');
             if (key && value !== undefined) {
                 result[key] = value;

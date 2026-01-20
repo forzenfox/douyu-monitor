@@ -7,6 +7,7 @@
             :data="item"
             :mode="options.mode"
             :showAnimation="options.animation"
+            :options="options"
         ></Default>
         <div v-if="superchatList.length === 0" class="empty-tip">
             暂无超级弹幕

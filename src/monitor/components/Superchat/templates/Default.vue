@@ -13,21 +13,35 @@
             animationDuration: `${data.duration || 30}s`
         }"></div>
         
-        <div class="superchat-avatar" v-if="getAvatarUrl(data.avatar)">
-            <img :src="getAvatarUrl(data.avatar)" alt="" class="avatar" @error="handleAvatarError">
-        </div>
-        <div class="superchat-avatar placeholder" v-else>
-            <!-- 头像占位符 -->
-        </div>
         <div class="superchat-content">
             <div class="superchat-header" :style="{
                 backgroundColor: 'transparent'
             }">
+                <!-- 粉丝牌 -->
+                <span v-if="options?.superchat?.show?.includes('fans') && data.fansName" class="superchat-fans" :class="`fansLevel-${data.fansLv}`">
+                    {{ data.fansName }} Lv{{ data.fansLv }}
+                </span>
+                <!-- 贵族 -->
+                <span v-if="options?.superchat?.show?.includes('noble') && data.noble" class="superchat-noble">
+                    贵族
+                </span>
+                <!-- 房管 -->
+                <span v-if="options?.superchat?.show?.includes('roomAdmin') && data.roomAdmin" class="superchat-roomAdmin">
+                    房管
+                </span>
+                <!-- 钻粉 -->
+                <span v-if="options?.superchat?.show?.includes('diamond') && data.diamond" class="superchat-diamond">
+                    钻粉
+                </span>
                 <span class="superchat-nickname" :style="{ color: data.isExpired ? '#999999' : (data.nicknameColor || '#FFFFFF') }">{{ data.nn || '匿名用户' }}</span>
                 <span class="superchat-price" :style="{ 
                     backgroundColor: data.isExpired ? '#CCCCCC' : (data.bgColor?.header || data.bgColor?.body || '#FF6B6B'),
                     color: data.isExpired ? '#999999' : '#FFFFFF' 
                 }">¥{{ data.price }}</span>
+                <!-- 时间 -->
+                <span v-if="options?.superchat?.show?.includes('time')" class="superchat-time">
+                    {{ formatTime(data.time) }}
+                </span>
             </div>
             <div class="superchat-message" :style="{ 
                 color: data.isExpired ? '#999999' : (data.textColor || '#FFFFFF')
@@ -54,28 +68,24 @@ let props = defineProps({
     showAnimation: {
         type: Boolean,
         default: true
+    },
+    options: {
+        type: Object,
+        default: () => ({})
     }
 })
 
-// 处理头像加载错误
-const handleAvatarError = (e) => {
-    e.target.style.display = 'none';
-}
-
 /**
- * 获取头像URL
- * @param {string} avatar - 头像标识
- * @returns {string} 完整的头像URL
+ * 格式化时间
+ * @param {number} time - 时间戳
+ * @returns {string} 格式化后的时间
  */
-const getAvatarUrl = (avatar) => {
-    if (!avatar) {
+const formatTime = (time) => {
+    if (!time) {
         return ''
     }
-    // 如果avatar已经包含完整URL，直接返回
-    if (avatar.startsWith('http') || avatar.startsWith('https')) {
-        return avatar
-    }
-    return `https://apic.douyucdn.cn/upload/${avatar}_small.jpg`
+    const date = new Date(time * 1000);
+    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
 }
 
 // 组件挂载时，设置自动移除计时器
@@ -232,12 +242,34 @@ onMounted(() => {
     flex-shrink: 0;
 }
 
+.superchat-fans,
+.superchat-noble,
+.superchat-roomAdmin,
+.superchat-diamond {
+    font-size: 12px;
+    font-weight: bold;
+    color: #FFFFFF;
+    padding: 2px 6px;
+    border-radius: 8px;
+    margin-right: 6px;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.superchat-time {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.8);
+    margin-left: 8px;
+    flex-shrink: 0;
+}
+
 .superchat-price {
     font-size: 12px;
     font-weight: bold;
     color: #FFFFFF;
     padding: 2px 8px;
     border-radius: 10px;
+    margin-left: 6px;
     flex-shrink: 0;
     background: rgba(0, 0, 0, 0.2);
 }
@@ -348,6 +380,18 @@ onMounted(() => {
             // 确保过期状态下也显示用户名
             display: flex;
             
+            .superchat-fans,
+            .superchat-noble,
+            .superchat-roomAdmin,
+            .superchat-diamond {
+                background-color: #CCCCCC !important;
+                color: #999999 !important;
+            }
+            
+            .superchat-time {
+                color: #999999 !important;
+            }
+            
             .superchat-nickname {
                 color: #999999 !important;
                 display: block;
@@ -385,6 +429,18 @@ onMounted(() => {
     
     .superchat-content {
         .superchat-header {
+            .superchat-fans,
+            .superchat-noble,
+            .superchat-roomAdmin,
+            .superchat-diamond {
+                background-color: #444444 !important;
+                color: #666666 !important;
+            }
+            
+            .superchat-time {
+                color: #666666 !important;
+            }
+            
             .superchat-nickname {
                 color: #666666 !important;
             }
