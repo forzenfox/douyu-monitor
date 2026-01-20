@@ -39,17 +39,11 @@ export function useWebsocket(options, allGiftData) {
         const now = Date.now();
         
         superchatList.value.forEach((item, index) => {
-            // 默认超级弹幕配置
-            const superchatOption = {
-                time: 10,
-                bgColor: {
-                    header: "rgb(208,0,0)",
-                    body: "rgb(230,33,23)"
-                }
-            };
+            // 获取持续时间
+            const duration = item.duration || 60; // 默认1分钟
             
             // 计算过期时间（创建时间 + 持续时间，单位：毫秒）
-            const expireTime = item.createdAt + superchatOption.time * 1000;
+            const expireTime = item.createdAt + duration * 1000;
             
             // 更新过期状态
             item.isExpired = now > expireTime;
@@ -178,6 +172,31 @@ export function useWebsocket(options, allGiftData) {
     };
 
     /**
+     * 解析chatmsg字段，处理@S分隔的子字段
+     * @param {string|Object} chatmsg - chatmsg字段值
+     * @returns {Object} 解析后的chatmsg对象
+     */
+    const parseChatmsg = (chatmsg) => {
+        if (!chatmsg) return {};
+        if (typeof chatmsg === 'object') return chatmsg;
+        
+        // 如果chatmsg是字符串，解析其中的@S分隔的子字段
+        const result = {};
+        const fields = chatmsg.replace(/@S/g, '&').split('&');
+        
+        fields.forEach(field => {
+            if (!field) return;
+            
+            const [key, value] = field.split('@A');
+            if (key && value !== undefined) {
+                result[key] = value;
+            }
+        });
+        
+        return result;
+    };
+    
+    /**
      * 生成超级弹幕
      * @param {Object} data - 消息数据
      * @param {number} price - 超级弹幕价格
@@ -191,7 +210,7 @@ export function useWebsocket(options, allGiftData) {
         
         // 从多种可能的字段中获取用户信息，确保兼容不同消息类型
         // 特别处理voiceDanmu类型，从chatmsg对象中提取真实的用户信息和弹幕内容
-        const chatmsg = data.chatmsg || {};
+        const chatmsg = parseChatmsg(data.chatmsg);
         const nickname = cleanFieldValue(chatmsg.nn || data.nn || data.nick || data.userName || data.unk || "匿名用户");
         const avatar = cleanFieldValue(chatmsg.ic || data.ic || data.icon || data.uic || data.avatar || data.userAvatar || "");
         const content = cleanFieldValue(chatmsg.txt || data.txt || data.msg || data.content || "");
@@ -211,10 +230,18 @@ export function useWebsocket(options, allGiftData) {
             level = 1;
         }
         
+        // 计算持续时间（秒）
+        let duration = 60; // 默认1分钟
+        if (validPrice >= 500) {
+            duration = 300; // 5分钟
+        } else if (validPrice >= 50) {
+            duration = 120; // 2分钟
+        }
+        
         // 动态生成背景颜色
         const bgColor = getSuperchatBgColor(validPrice);
         
-        console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 解析出的用户信息：昵称=${nickname}，头像=${avatar}，内容=${content}，等级=${level}，价格=${validPrice}`);
+        console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 解析出的用户信息：昵称=${nickname}，头像=${avatar}，内容=${content}，等级=${level}，价格=${validPrice}，持续时间=${duration}秒`);
 
         const superchat = {
             nn: nickname, // 昵称，确保有默认值
@@ -226,6 +253,7 @@ export function useWebsocket(options, allGiftData) {
             textColor: '#FFFFFF', // 默认文字颜色为白色
             nicknameColor: '#FFFFFF', // 默认昵称颜色为白色
             key: data.cid || (new Date().getTime() + Math.random()), // 唯一标识
+            duration: duration, // 添加持续时间字段
             createdAt: Date.now(), // 创建时间
             isExpired: false
         };

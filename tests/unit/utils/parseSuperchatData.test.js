@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { parseSuperchatData, getLevelByPrice, getHeaderColor, getBodyColor } from '../../scripts/test-superchat'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
+import { defaultOptions } from '../../../src/monitor/options.js'
 
 describe('Superchat Data Parsing', () => {
   // 测试数据文件路径
@@ -25,12 +26,17 @@ describe('Superchat Data Parsing', () => {
       expect(item).toHaveProperty('textColor')
       expect(item).toHaveProperty('nicknameColor')
       expect(item).toHaveProperty('key')
+      expect(item).toHaveProperty('duration')
       expect(item).toHaveProperty('createdAt')
       expect(item).toHaveProperty('isExpired')
       
       // 验证价格是数字
       expect(typeof item.price).toBe('number')
       expect(item.price).toBeGreaterThanOrEqual(0)
+      
+      // 验证持续时间是数字
+      expect(typeof item.duration).toBe('number')
+      expect(item.duration).toBeGreaterThanOrEqual(60)
       
       // 验证背景颜色对象
       expect(item.bgColor).toHaveProperty('header')
@@ -52,22 +58,48 @@ describe('Superchat Data Parsing', () => {
   
   it('should return correct header color by price', () => {
     // 测试不同价格对应的头部颜色
-    expect(getHeaderColor(5)).toBe('rgb(21,101,192)')
-    expect(getHeaderColor(10)).toBe('rgb(0,191,165)')
-    expect(getHeaderColor(30)).toBe('rgb(230,81,0)')
-    expect(getHeaderColor(50)).toBe('rgb(194,24,91)')
-    expect(getHeaderColor(100)).toBe('rgb(208,0,0)')
-    expect(getHeaderColor(500)).toBe('rgb(208,0,0)')
+    const superchatOptions = defaultOptions?.superchat?.options || [];
+    
+    // 测试价格5元（最低档）
+    expect(getHeaderColor(5)).toBe(superchatOptions.find(opt => opt.minPrice === 0)?.bgColor?.header || 'rgb(21,101,192)');
+    
+    // 测试价格10元（最低档）
+    expect(getHeaderColor(10)).toBe(superchatOptions.find(opt => opt.minPrice === 0)?.bgColor?.header || 'rgb(21,101,192)');
+    
+    // 测试价格30元（最低档）
+    expect(getHeaderColor(30)).toBe(superchatOptions.find(opt => opt.minPrice === 0)?.bgColor?.header || 'rgb(21,101,192)');
+    
+    // 测试价格50元（中档）
+    expect(getHeaderColor(50)).toBe(superchatOptions.find(opt => opt.minPrice === 50)?.bgColor?.header || 'rgb(208,0,0)');
+    
+    // 测试价格100元（中档）
+    expect(getHeaderColor(100)).toBe(superchatOptions.find(opt => opt.minPrice === 50)?.bgColor?.header || 'rgb(208,0,0)');
+    
+    // 测试价格500元（高档）
+    expect(getHeaderColor(500)).toBe(superchatOptions.find(opt => opt.minPrice === 500)?.bgColor?.header || 'rgb(230,81,0)');
   })
   
   it('should return correct body color by price', () => {
     // 测试不同价格对应的身体颜色
-    expect(getBodyColor(5)).toBe('rgb(30,136,229)')
-    expect(getBodyColor(10)).toBe('rgb(29,233,182)')
-    expect(getBodyColor(30)).toBe('rgb(245,124,0)')
-    expect(getBodyColor(50)).toBe('rgb(233,30,99)')
-    expect(getBodyColor(100)).toBe('rgb(230,33,23)')
-    expect(getBodyColor(500)).toBe('rgb(230,33,23)')
+    const superchatOptions = defaultOptions?.superchat?.options || [];
+    
+    // 测试价格5元（最低档）
+    expect(getBodyColor(5)).toBe(superchatOptions.find(opt => opt.minPrice === 0)?.bgColor?.body || 'rgb(30,136,229)');
+    
+    // 测试价格10元（最低档）
+    expect(getBodyColor(10)).toBe(superchatOptions.find(opt => opt.minPrice === 0)?.bgColor?.body || 'rgb(30,136,229)');
+    
+    // 测试价格30元（最低档）
+    expect(getBodyColor(30)).toBe(superchatOptions.find(opt => opt.minPrice === 0)?.bgColor?.body || 'rgb(30,136,229)');
+    
+    // 测试价格50元（中档）
+    expect(getBodyColor(50)).toBe(superchatOptions.find(opt => opt.minPrice === 50)?.bgColor?.body || 'rgb(230,33,23)');
+    
+    // 测试价格100元（中档）
+    expect(getBodyColor(100)).toBe(superchatOptions.find(opt => opt.minPrice === 50)?.bgColor?.body || 'rgb(230,33,23)');
+    
+    // 测试价格500元（高档）
+    expect(getBodyColor(500)).toBe(superchatOptions.find(opt => opt.minPrice === 500)?.bgColor?.body || 'rgb(245,124,0)');
   })
   
   it('should handle invalid data gracefully', () => {

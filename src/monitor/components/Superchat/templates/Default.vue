@@ -7,6 +7,12 @@
         backgroundColor: data.isExpired ? '#f0f0f0' : (data.bgColor?.body || '#FF6B6B'),
         '--superchat-header-color': data.isExpired ? 'transparent' : (data.bgColor?.header || data.bgColor?.body || '#FF6B6B')
     }">
+        <!-- 前景色进度条 -->
+        <div class="superchat-progress" :style="{
+            backgroundColor: data.bgColor?.body || '#FF6B6B',
+            animationDuration: `${data.duration || 30}s`
+        }"></div>
+        
         <div class="superchat-avatar" v-if="getAvatarUrl(data.avatar)">
             <img :src="getAvatarUrl(data.avatar)" alt="" class="avatar" @error="handleAvatarError">
         </div>
@@ -101,15 +107,24 @@ onMounted(() => {
     
     border: 1px solid rgba(255, 255, 255, 0.2);
 
-    &::before {
-        content: '';
+    // 前景色进度条
+    .superchat-progress {
         position: absolute;
         top: 0;
-        left: 0;
         right: 0;
-        height: 4px;
-        background: rgba(255, 255, 255, 0.3);
-        animation: progressBar 30s linear forwards;
+        height: 100%;
+        width: 100%;
+        z-index: 0;
+        opacity: 0.8;
+        animation: progressBarRightToLeft linear forwards;
+        pointer-events: none;
+    }
+
+    // 确保内容在进度条之上
+    .superchat-avatar,
+    .superchat-content {
+        position: relative;
+        z-index: 1;
     }
 
     // 添加脉冲效果
@@ -259,6 +274,16 @@ onMounted(() => {
     }
 }
 
+// 从右到左的进度条动画
+@keyframes progressBarRightToLeft {
+    from {
+        width: 100%;
+    }
+    to {
+        width: 0;
+    }
+}
+
 // 脉冲动画 - 用于最高级超级弹幕
 @keyframes pulse {
     0%, 100% {
@@ -300,7 +325,7 @@ onMounted(() => {
     animation: none;
     
     // 移除进度条
-    &::before {
+    .superchat-progress {
         display: none;
     }
     
