@@ -492,6 +492,7 @@ const addPresetKeyword = (template) => {
   .field-label {
     width: auto;
     margin-right: 0;
+    font-size: 13px;
   }
   
   .field-content {
@@ -500,25 +501,77 @@ const addPresetKeyword = (template) => {
   
   .keyword-info {
     flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  
+  .keyword-checkbox {
+    order: 1;
+  }
+  
+  .keyword-name {
+    order: 2;
+    flex: 1;
+    min-width: 60px;
+    font-size: 13px;
   }
   
   .color-picker-container {
-    order: -1;
-    width: 100%;
+    order: 3;
+    flex: 1;
+    min-width: 120px;
     justify-content: flex-start;
+    gap: 6px;
+  }
+  
+  .color-picker-label {
+    font-size: 11px;
+  }
+  
+  .color-picker {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .delete-btn {
+    order: 4;
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
   }
   
   .add-keyword-input {
     flex-direction: column;
     align-items: stretch;
+    gap: 8px;
+  }
+  
+  .add-keyword-input-field {
+    width: 100%;
+    max-width: none;
+    padding: 10px 12px;
+    font-size: 13px;
   }
   
   .add-btn {
     width: 100%;
+    padding: 10px 16px;
+    font-size: 13px;
   }
   
   .prefix-input {
     width: 100%;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .preset-templates {
+    gap: 6px;
+  }
+  
+  .template-btn {
+    padding: 5px 10px;
+    font-size: 13px;
   }
 }
 </style>
