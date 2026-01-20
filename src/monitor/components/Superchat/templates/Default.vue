@@ -19,7 +19,8 @@
             }">
                 <!-- 粉丝牌 -->
                 <span v-if="options?.superchat?.show?.includes('fans') && data.fansName" class="superchat-fans" :class="`fansLevel-${data.fansLv}`">
-                    {{ data.fansName }} Lv{{ data.fansLv }}
+                    {{ data.fansName }}
+                    <span v-if="data.fansLv > 0"> Lv{{ data.fansLv }}</span>
                 </span>
                 <!-- 贵族 -->
                 <span v-if="options?.superchat?.show?.includes('noble') && data.noble" class="superchat-noble">

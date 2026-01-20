@@ -93,6 +93,8 @@ export const defaultOptions = {
         enabled: true,
         // 指令前缀
         prefix: '#',
+        // 是否语音播报
+        speak: true,
         // 指令关键词列表
         keywords: [
             { id: 'kw-1', name: '点歌', enabled: true, color: '#007bff' },

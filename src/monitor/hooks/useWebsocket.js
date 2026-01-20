@@ -27,6 +27,13 @@ export function useWebsocket(options, allGiftData) {
     // 超级弹幕映射表，用于存储用户的礼物贡献
     let superchatMap = {};
     
+    // 已处理消息ID集合，用于去重
+    let processedMessageIds = new Set();
+    // 消息ID过期时间（毫秒）
+    const MESSAGE_EXPIRE_TIME = 60 * 1000; // 1分钟
+    // 定期清理过期消息ID的定时器
+    let cleanupTimer = null;
+    
     // 超级弹幕过期清理定时器
     let superchatCleanupTimer = null;
     
@@ -62,29 +69,6 @@ export function useWebsocket(options, allGiftData) {
         });
         
     };
-
-    /**
-     * Mock生成超级弹幕
-     */
-    /* const mockSuperchat = () => {
-        // 生成一条测试超级弹幕
-        const testData = {
-            nn: "测试用户",
-            ic: "avatar_v3/202105/7b4b257d45c74deab9ff4e57746fd8a5",
-            txt: `这是一条测试超级弹幕 ${Date.now()}`,
-            cid: Date.now().toString()
-        };
-        
-        const price = Math.floor(Math.random() * 1000) + 10; // 10-209随机价格
-        const superchat = generateSuperchat(testData, price);
-        
-        if (superchatList.value.length + 1 > options.value.threshold) {
-            superchatList.value.shift();
-        }
-        superchatList.value.push(superchat);
-        
-        console.debug(`[Mock] 生成了一条测试超级弹幕，价格：${price}，当前列表长度：${superchatList.value.length}`);
-    }; */
 
     /**
      * 计算重连间隔，使用指数退避策略
@@ -184,27 +168,6 @@ export function useWebsocket(options, allGiftData) {
         
         // 清理旧资源
         cleanupResources();
-        
-        /* // 开发环境下使用mock数据（自动调试）
-        if (import.meta.env.DEV) {
-            console.debug("[Mock] 开发环境下使用自动Mock功能");
-            
-            // 每3秒生成一条测试超级弹幕
-            const mockInterval = setInterval(mockSuperchat, 3000);
-            
-            // 启动超级弹幕过期状态更新定时器
-            superchatCleanupTimer = setInterval(() => {
-                updateSuperchatExpireStatus();
-            }, 1000);
-            
-            // 清理函数
-            return () => {
-                clearInterval(mockInterval);
-                if (superchatCleanupTimer) {
-                    clearInterval(superchatCleanupTimer);
-                }
-            };
-        } */
         
         try {
             ws = new Ex_WebSocket_UnLogin(rid, (msg) => {
@@ -367,10 +330,32 @@ export function useWebsocket(options, allGiftData) {
             duration = 120; // 2分钟
         }
         
-        // 动态生成背景颜色
-        const bgColor = getSuperchatBgColor(validPrice);
+        // 从配置中获取背景颜色，根据价格匹配对应的配置项
+        let bgColor = { header: "rgb(21,101,192)", body: "rgb(30,136,229)" }; // 默认蓝色
         
-        console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 解析出的用户信息：昵称=${nickname}，头像=${avatar}，内容=${content}，等级=${level}，价格=${validPrice}，持续时间=${duration}秒`);
+        // 获取超级弹幕配置选项
+        const superchatOptions = options.value?.superchat?.options || [];
+        
+        // 找到价格对应的配置项（配置项是按从高到低排序的）
+        for (const option of superchatOptions) {
+            if (validPrice >= option.minPrice) {
+                bgColor = option.bgColor;
+                break;
+            }
+        }
+        
+        console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 解析出的用户信息：昵称=${nickname}，头像=${avatar}，内容=${content}，等级=${level}，价格=${validPrice}，持续时间=${duration}秒，背景颜色：`, bgColor);
+
+        // 提取显示项相关字段
+        // 从多种可能的字段中获取显示项信息，确保兼容不同消息类型
+        const fansName = cleanFieldValue(chatmsg.bnn || data.bnn || data.fansName || '');
+        // 确保粉丝牌等级始终是有效的数字，避免出现NaN
+        const blValue = chatmsg.bl || data.bl || data.fansLv || '0';
+        const fansLv = isNaN(Number(blValue)) ? 0 : Number(blValue);
+        const noble = Boolean(chatmsg.nl || data.nl || data.noble);
+        const roomAdmin = Boolean(chatmsg.rg === 4 || data.rg === 4 || data.roomAdmin);
+        const diamond = Boolean(chatmsg.diaf || data.diaf || data.diamond);
+        const time = Number(data.now || data.time || Date.now()) / 1000; // 转换为秒级时间戳
 
         const superchat = {
             nn: nickname, // 昵称，确保有默认值
@@ -384,14 +369,46 @@ export function useWebsocket(options, allGiftData) {
             key: data.cid || (new Date().getTime() + Math.random()), // 唯一标识
             duration: duration, // 添加持续时间字段
             createdAt: Date.now(), // 创建时间
-            isExpired: false
+            isExpired: false,
+            // 显示项相关字段
+            fansName: fansName, // 粉丝牌名称
+            fansLv: fansLv, // 粉丝牌等级
+            noble: noble, // 是否是贵族
+            roomAdmin: roomAdmin, // 是否是房管
+            diamond: diamond, // 是否是钻粉
+            time: time // 时间戳（秒级）
         };
         
         console.debug(`[Superchat] [${new Date().toLocaleTimeString()}] 生成的超级弹幕对象：`, superchat);
         return superchat;
     };
 
+    /**
+     * 超级弹幕语音播报
+     * @param {Object} data - 超级弹幕数据
+     */
+    const speakSuperchat = (data) => {
+        if (options.value.superchat.speak) {
+            const userName = data.nn || data.userName || data.superchat?.nn || "匿名用户";
+            const content = data.txt || data.content || data.superchat?.txt || "";
+            if (userName && content) {
+                speakText(`${userName}发来高能弹幕：${content}`);
+            }
+        }
+    };
+
     const handleMsg = (msg) => {
+        // 提取消息ID，用于去重
+        const msgId = getStrMiddle(msg, "cid@=", "/") || getStrMiddle(msg, "vrid@=", "/") || getStrMiddle(msg, "now@=", "/") || Date.now().toString();
+        
+        // 检查消息是否已处理过
+        if (processedMessageIds.has(msgId)) {
+            return;
+        }
+        
+        // 标记消息为已处理
+        processedMessageIds.add(msgId);
+        
         let msgType = getStrMiddle(msg, "type@=", "/");
         if (!msgType) {
             return;
@@ -468,6 +485,11 @@ export function useWebsocket(options, allGiftData) {
                     commandDanmakuList.value.push(commandDanmaku);
                     if (options.value.isSaveData) {
                         commandDanmakuListSave.push(msg);
+                    }
+                    
+                    // 添加语音提示
+                    if (options.value.commandDanmaku.speak) {
+                        speakText(`${commandDanmaku.userName} 发送了指令：${commandDanmaku.command} ${commandDanmaku.commandContent}`);
                     }
                 }
             }
@@ -860,11 +882,6 @@ export function useWebsocket(options, allGiftData) {
      * @returns {Object|null} - 符合规则返回指令弹幕对象，否则返回null
      */
     const checkCommandDanmakuValid = (data) => {
-        // 检查指令弹幕模块是否启用
-        if (!options.value.commandDanmaku?.enabled) {
-            return null;
-        }
-
         // 获取指令弹幕配置
         const { prefix, keywords } = options.value.commandDanmaku;
         
@@ -904,6 +921,103 @@ export function useWebsocket(options, allGiftData) {
             }
         };
     }
+
+    /**
+     * 模拟测试超级弹幕功能
+     * 从测试数据文件读取超级弹幕数据并生成超级弹幕
+     * 注意：此函数仅用于本地调试，生产环境请注释掉
+     */
+    const mockSuperchatTest = async () => {
+        console.debug('[Superchat Test] 开始模拟测试超级弹幕');
+        try {
+            // 内嵌测试数据，兼容浏览器环境
+            const testData = [
+                "vrid@=2013081579710062592/btype@=voiceDanmu/chatmsg@=nn@A=小爷话不多@Slevel@A=21@Stype@A=chatmsg@Srid@A=317422@Sgag@A=0@Suid@A=110510743@Stxt@A=卡着谢这么多遍！架我？@Sadid@A=0@Shidenick@A=0@Snc@A=0@Sic@A=avanew@ASface@AS201702@AS15@AS17@AS89482f952b1be50847c9c6c7c61cbe53@Snl@A=0@Stbid@A=0@Stbl@A=0@Stbvip@A=0@S/range@=2/cprice@=1000/crealPrice@=1000/cmgType@=1/type@=comm_chatmsg/rid@=317422/gbtemp@=2/uid@=110510743/cet@=30/now@=1768791052053/csuperScreen@=0/danmucr@=1/",
+                "vrid@=2013073625904607232/btype@=voiceDanmu/chatmsg@=nn@A=凯旋悉尼都弟弟@Sbnn@A=雨酱灬@Sbrid@A=317422@Sdiaf@A=1@Sail@A=1446@AS3669@AS917@AS1177@AS3688@AS@Slevel@A=32@Sbl@A=13@Stype@A=chatmsg@Srid@A=317422@Sgag@A=0@Suid@A=4486699@Stxt@A=雨哥，能把面罩上的带子咬嘴里吗？很急@Sadid@A=0@Shidenick@A=0@Snc@A=0@Sifs@A=1@Sic@A=avatar@AS004@AS48@AS66@AS99_avatar@Snl@A=0@Stbid@A=0@Stbl@A=0@Stbvip@A=0@S/range@=2/cprice@=3000/crealPrice@=3000/cmgType@=1/type@=comm_chatmsg/rid@=317422/gbtemp@=2/uid@=4486699/cet@=60/now@=1768789162058/csuperScreen@=0/danmucr@=1/",
+                "vrid@=2013079260943638528/btype@=voiceDanmu/chatmsg@=nn@A=诘疤泰粗荫盗钛锦@Sbnn@A=雨酱灬@Sbrid@A=317422@Sdiaf@A=1@Sail@A=2614@AS1446@AS917@AS1177@AS3688@AS@Slevel@A=30@Sbl@A=12@Stype@A=chatmsg@Srid@A=317422@Sgag@A=0@Suid@A=678519079@Stxt@A=师傅这个人是韩国人。师傅，这个人是韩国人。师傅，这人是韩国人@Sadid@A=0@Shidenick@A=0@Snc@A=0@Sifs@A=1@Sic@A=avatar_v3@AS202601@AS289df366f3ec42f691217eabe3f39df5@Shb@A=1706@AS@Snl@A=0@Stbid@A=0@Stbl@A=0@Stbvip@A=0@S/range@=2/cprice@=3000/crealPrice@=3000/cmgType@=1/type@=comm_chatmsg/rid@=317422/gbtemp@=2/uid@=678519079/cet@=60/now@=1768790532044/csuperScreen@=0/danmucr@=1/",
+                "vrid@=2013084170338721792/btype@=voiceDanmu/chatmsg@=nn@A=主播我点歌任天堂流泪@Sbnn@A=雨酱灬@Sbrid@A=317422@Sdiaf@A=1@Sail@A=2614@AS1446@AS917@AS1177@AS3688@AS@Slevel@A=37@Sbl@A=18@Stype@A=chatmsg@Srid@A=317422@Sgag@A=0@Suid@A=10819457@Stxt@A=能不能来点正能量，写上2026年，422大肥越来越好！大家越来越好！徒步一定成功！@Sadid@A=0@Shidenick@A=0@Snc@A=0@Sifs@A=1@Sic@A=avanew@ASface@AS201705@AS22@AS07@ASfbfad8a1701b0ba9ad2407610daa24f1@Snl@A=0@Stbid@A=0@Stbl@A=0@Stbvip@A=0@S/range@=0/cprice@=5000/crealPrice@=5000/cmgType@=1/type@=comm_chatmsg/rid@=317422/gbtemp@=2/uid@=10819457/cet@=120/now@=1768791666039/csuperScreen@=1/danmucr@=2/",
+                "vrid@=2013093401980837888/btype@=voiceDanmu/chatmsg@=nn@A=小牛啃草@Sbnn@A=雨酱灬@Sbrid@A=317422@Sdiaf@A=1@Sail@A=1446@AS2614@AS917@AS1177@AS3688@AS@Slevel@A=44@Sbl@A=20@Stype@A=chatmsg@Srid@A=317422@Sgag@A=0@Suid@A=59930844@Stxt@A=“雨哥，你嘛时候是驴门第一啊？“ ”我不知道，你说呢？“ ”就在今年，就在今年！“ 雨皇雨皇雨皇雨皇@Sadid@A=0@Shidenick@A=0@Snc@A=0@Sifs@A=1@Sic@A=avatar_v3@AS201812@AS9af31fac5afba693ec72fede5cb9e85e@Snl@A=0@Stbid@A=0@Stbl@A=0@Stbvip@A=0@S/range@=0/cprice@=5000/crealPrice@=5000/cmgType@=1/type@=comm_chatmsg/rid@=317422/gbtemp@=2/uid@=59930844/cet@=120/now@=1768793884038/csuperScreen@=1/danmucr@=2/",
+                "vrid@=2013092044456599552/btype@=voiceDanmu/chatmsg@=nn@A=小牛啃草@Sbnn@A=雨酱灬@Sbrid@A=317422@Sdiaf@A=1@Sail@A=2614@AS1446@AS917@AS1177@AS3688@AS@Slevel@A=44@Sbl@A=20@Stype@A=chatmsg@Srid@A=317422@Sgag@A=0@Suid@A=59930844@Stxt@A=雨神 点歌 Everybody Wan ts To Rule The World 歌手 Tears For Fears@Sadid@A=0@Shidenick@A=0@Snc@A=0@Sifs@A=1@Sic@A=avatar_v3@AS201812@AS9af31fac5afba693ec72fede5cb9e85e@Snl@A=0@Stbid@A=0@Stbl@A=0@Stbvip@A=0@S/range@=0/cprice@=10000/crealPrice@=10000/cmgType@=1/type@=comm_chatmsg/rid@=317422/gbtemp@=2/uid@=59930844/cet@=300/now@=1768793552057/csuperScreen@=1/danmucr@=2/",
+                "vrid@=2013433348659109888/btype@=voiceDanmu/chatmsg@=nn@A=真诚高玩头@Sbnn@A=驴酱灬@Slevel@A=28@Sbrid@A=138243@Sdiaf@A=1@Sail@A=3669@AS1446@AS917@AS1177@AS3688@AS@Sbl@A=17@Stype@A=chatmsg@Srid@A=317422@Sgag@A=0@Suid@A=48714762@Stxt@A=听说能开户送100肥享值？点歌黑夜中@Sadid@A=0@Shidenick@A=0@Snc@A=1@Sic@A=avatar_v3@AS202310@ASfd6b77e96f4143b59c791a13d57aea7d@Snl@A=7@Stbid@A=0@Stbl@A=0@Stbvip@A=0@S/range@=0/cprice@=5000/crealPrice@=5000/cmgType@=1/type@=comm_chatmsg/rid@=317422/gbtemp@=2/uid@=48714762/cet@=120/now@=1768874996037/csuperScreen@=1/danmucr@=2/",
+                "vrid@=2013435099852320768/btype@=voiceDanmu/chatmsg@=nn@A=跑腿的小土豆@Sbnn@A=驴酱灬@Slevel@A=35@Sbrid@A=138243@Sbl@A=20@Stype@A=chatmsg@Srid@A=317422@Sgag@A=0@Suid@A=3137023@Stxt@A=抽奖礼物真的糙，被骗了多花我50。祝大肥师徒三人一路顺利到达武汉成功上位。点歌，千里行走(寅子。@Sadid@A=0@Shidenick@A=0@Snc@A=0@Sifs@A=1@Sic@A=avatar@AS003@AS13@AS70@AS23_avatar@Snl@A=0@Stbid@A=0@Stbl@A=0@Stbvip@A=0@S/range@=0/cprice@=5000/crealPrice@=5000/cmgType@=1/type@=comm_chatmsg/rid@=317422/gbtemp@=2/uid@=3137023/cet@=120/now@=1768875372040/csuperScreen@=1/danmucr@=2/",
+                "vrid@=2013459655732244480/btype@=voiceDanmu/chatmsg@=nn@A=看见哥俩就开心@Sbnn@A=驴酱灬@Sbrid@A=138243@Sdiaf@A=1@Sail@A=1446@AS3669@AS917@AS3688@AS@Slevel@A=27@Sbl@A=16@Stype@A=chatmsg@Srid@A=317422@Sgag@A=0@Suid@A=461358961@Stxt@A=点歌多远都要在一起@Sadid@A=0@Shidenick@A=0@Snc@A=0@Sifs@A=1@Sic@A=avatar_v3@AS202508@AS379b18e444d445e787678405410395de@Snl@A=0@Stbid@A=0@Stbl@A=0@Stbvip@A=0@S/range@=2/cprice@=1000/crealPrice@=1000/cmgType@=1/type@=comm_chatmsg/rid@=317422/gbtemp@=2/uid@=461358961/cet@=30/now@=1768881210151/csuperScreen@=0/danmucr@=1/",
+                "vrid@=2013470470690590720/btype@=voiceDanmu/chatmsg@=nn@A=可爱哈吉人@Slevel@A=41@Sail@A=4332@AS4322@AS4349@AS917@AS1177@AS3688@AS@Snail@A=4448_317422@AS@Stype@A=chatmsg@Srid@A=317422@Sgag@A=0@Sds@A=4327@Suid@A=137337660@Stxt@A=点歌 arianne schreiber 的 Komm, susser Tod 再见了所有人@Sadid@A=0@Shidenick@A=0@Snc@A=0@Sic@A=avatar_v3@AS202412@AS17d1944c61d343d2bcc4738b84693a7b@Snl@A=0@Stbid@A=0@Stbl@A=0@Stbvip@A=0@S/range@=0/cprice@=5000/crealPrice@=5000/cmgType@=1/type@=comm_chatmsg/rid@=317422/gbtemp@=2/uid@=137337660/cet@=120/now@=1768883788035/csuperScreen@=1/danmucr@=2/"
+            ];
+            
+            console.debug(`[Superchat Test] 使用内嵌测试数据，共 ${testData.length} 条`);
+            
+            // 使用内嵌测试数据
+            const lines = testData;
+            
+            // 解析并生成超级弹幕，添加时间间隔
+            lines.forEach((line, index) => {
+                setTimeout(() => {
+                    try {
+                        // 解析URL编码格式的数据
+                        const chatmsgMatch = line.match(/chatmsg@=([^/]+)/);
+                        const cpriceMatch = line.match(/cprice@=([^/]+)/);
+                        const crealPriceMatch = line.match(/crealPrice@=([^/]+)/);
+                        const nowMatch = line.match(/now@=([^/]+)/);
+                        const vridMatch = line.match(/vrid@=([^/]+)/);
+                        
+                        if (!chatmsgMatch) {
+                            console.error(`[Superchat Test] 第 ${index + 1} 行数据缺少chatmsg字段:`, line);
+                            return;
+                        }
+                        
+                        const chatmsg = chatmsgMatch[1];
+                        const cprice = cpriceMatch ? cpriceMatch[1] : '0';
+                        const crealPrice = crealPriceMatch ? crealPriceMatch[1] : '0';
+                        const now = nowMatch ? nowMatch[1] : Date.now().toString();
+                        const vrid = vridMatch ? vridMatch[1] : '';
+                        
+                        // 解析chatmsg数据
+                        const chatmsgData = parseChatmsg(chatmsg);
+                        
+                        // 基于真实价格计算，优先使用crealPrice，否则使用cprice
+                        const price = crealPrice > 0 ? Number(crealPrice) / 100 : (cprice > 0 ? Number(cprice) / 100 : 10);
+                        
+                        // 生成超级弹幕
+                        const superchat = generateSuperchat({
+                            chatmsg: chatmsgData,
+                            cprice: cprice,
+                            crealPrice: crealPrice,
+                            now: now,
+                            vrid: vrid,
+                            ...chatmsgData
+                        }, price);
+                        
+                        // 添加到超级弹幕列表
+                        if (superchatList.value.length + 1 > options.value.threshold) {
+                            superchatList.value.shift();
+                        }
+                        superchatList.value.push(superchat);
+                        
+                        // 语音播报
+                        speakSuperchat(superchat);
+                        
+                        console.debug(`[Superchat Test] 成功生成第 ${index + 1} 条超级弹幕:`, superchat);
+                        
+                        // 最后一条弹幕生成完成后输出总结
+                        if (index === lines.length - 1) {
+                            console.debug(`[Superchat Test] 测试完成，当前超级弹幕列表长度: ${superchatList.value.length}`);
+                        }
+                        
+                    } catch (error) {
+                        console.error(`[Superchat Test] 解析第 ${index + 1} 行数据失败:`, error, line);
+                    }
+                }, index * 2000); // 每条弹幕间隔2秒
+            });
+            
+        } catch (error) {
+            console.error('[Superchat Test] 模拟测试失败:', error);
+        }
+    };
+
+    // 直接调用模拟测试函数（用于本地调试，生产环境请注释）
+    // 调用模拟测试函数
+    mockSuperchatTest();
+
 
     return { connectWs, danmakuList, enterList, giftList, superchatList, commandDanmakuList, danmakuListSave, enterListSave, giftListSave, superchatListSave, commandDanmakuListSave, isConnected, reconnectCount }
 }

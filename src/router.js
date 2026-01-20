@@ -160,25 +160,32 @@ function createCustomPrompt() {
         }
         
         if (rid && rid.trim() !== '') {
-            // 构建新的URL
-            let newUrl = url;
-            // 检查URL是否已有查询参数
-            if (newUrl.includes('?')) {
-                newUrl += `&rid=${rid.trim()}`;
+            // 构建新的URL，使用路径参数形式
+            const baseUrl = window.location.origin;
+            const pathname = window.location.pathname;
+            let newUrl = '';
+            
+            // 移除可能存在的查询参数
+            const cleanPathname = pathname.split('?')[0];
+            
+            // 检查URL结构，构建正确的路径
+            if (cleanPathname === '/' || cleanPathname === '') {
+                // 根路径，直接添加房间号
+                newUrl = `${baseUrl}/${rid.trim()}`;
             } else {
-                // 检查URL是否以/结尾
-                if (newUrl.endsWith('/')) {
-                    newUrl += `${rid.trim()}`;
+                // 已有路径，替换或添加房间号
+                const pathParts = cleanPathname.split('/').filter(Boolean);
+                // 检查路径是否已经包含房间号
+                if (pathParts.length > 0 && !isNaN(Number(pathParts[pathParts.length - 1]))) {
+                    // 替换最后一个路径段为新房间号
+                    pathParts[pathParts.length - 1] = rid.trim();
                 } else {
-                    // 检查URL是否已有路径
-                    const pathname = window.location.pathname;
-                    if (pathname === '/' || pathname === '') {
-                        newUrl += `/${rid.trim()}`;
-                    } else {
-                        newUrl += `?rid=${rid.trim()}`;
-                    }
+                    // 添加房间号作为最后一个路径段
+                    pathParts.push(rid.trim());
                 }
+                newUrl = `${baseUrl}/${pathParts.join('/')}`;
             }
+            
             // 跳转到新URL
             location.href = newUrl;
             // 阻止后续代码执行

@@ -238,22 +238,30 @@ onMounted(async () => {
     options.value.order.superchat = 3;
     options.value.order.commandDanmaku = 4;
     
-    // 确保指令弹幕关键词的完整性，修复默认颜色不匹配问题
-    if (options.value.commandDanmaku && options.value.commandDanmaku.keywords) {
-        options.value.commandDanmaku.keywords = options.value.commandDanmaku.keywords.map(keyword => {
-            // 如果颜色未定义或为黑色，使用默认颜色
-            if (!keyword.color || keyword.color === '#000000') {
-                // 为不同的关键词设置不同的默认颜色
-                const defaultColors = {
-                    '点歌': '#007bff',
-                    '转盘': '#28a745',
-                    '抽奖': '#ffc107',
-                    '投票': '#17a2b8'
-                };
-                keyword.color = defaultColors[keyword.name] || '#007bff';
-            }
-            return keyword;
-        });
+    // 确保指令弹幕配置的完整性
+    if (options.value.commandDanmaku) {
+        // 确保enabled属性存在
+        if (options.value.commandDanmaku.enabled === undefined) {
+            options.value.commandDanmaku.enabled = true;
+        }
+        
+        // 确保指令弹幕关键词的完整性，修复默认颜色不匹配问题
+        if (options.value.commandDanmaku.keywords) {
+            options.value.commandDanmaku.keywords = options.value.commandDanmaku.keywords.map(keyword => {
+                // 如果颜色未定义或为黑色，使用默认颜色
+                if (!keyword.color || keyword.color === '#000000') {
+                    // 为不同的关键词设置不同的默认颜色
+                    const defaultColors = {
+                        '点歌': '#007bff',
+                        '转盘': '#28a745',
+                        '抽奖': '#ffc107',
+                        '投票': '#17a2b8'
+                    };
+                    keyword.color = defaultColors[keyword.name] || '#007bff';
+                }
+                return keyword;
+            });
+        }
     }
     
     // 初始化礼物数据
@@ -269,6 +277,9 @@ onMounted(async () => {
     window.giftDataUpdateTimer = updateTimer;
      
     connectWs(rid);
+    
+    // 动态更新网页title
+    document.title = `${rid} - DouyuEx弹幕助手`;
     
     // 组件卸载时清除定时器
     onBeforeUnmount(() => {
