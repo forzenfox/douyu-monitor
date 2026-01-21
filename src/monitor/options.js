@@ -22,7 +22,7 @@ export const defaultOptions = {
     commandDanmaku: 4,
   },
   // 每个模块开关，按顺序排
-  switch: ['danmaku', 'superchat', 'commandDanmaku'], // 默认不勾选进场和礼物
+  switch: ['enter', 'gift', 'danmaku', 'superchat', 'commandDanmaku'], // 默认不勾选进场和礼物
   // 消息上限
   threshold: 100,
   // 字号
@@ -115,7 +115,7 @@ export const defaultOptions = {
     // 指令前缀
     prefix: '#',
     // 是否语音播报
-    speak: true,
+    speak: false,
     // 指令关键词列表
     keywords: [
       { id: 'kw-1', name: '点歌', enabled: true, color: '#007bff' },
