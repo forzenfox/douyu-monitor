@@ -15,80 +15,83 @@ function parseSuperchatData(filePath) {
     const fileContent = fs.readFileSync(filePath, 'utf8');
     // 按换行分割数据
     const lines = fileContent.trim().split('\n');
-    
+
     // 解析每一行数据
-    return lines.map(line => {
-      try {
-        // 解析URL编码格式的数据
-        const chatmsgMatch = line.match(/chatmsg@=([^/]+)/);
-        if (!chatmsgMatch) {
+    return lines
+      .map(line => {
+        try {
+          // 解析URL编码格式的数据
+          const chatmsgMatch = line.match(/chatmsg@=([^/]+)/);
+          if (!chatmsgMatch) {
+            return null;
+          }
+
+          const chatmsg = chatmsgMatch[1];
+
+          // 解析公共字段
+          const cpriceMatch = line.match(/cprice@=(\d+)/);
+          const crealPriceMatch = line.match(/crealPrice@=(\d+)/);
+          const nowMatch = line.match(/now@=(\d+)/);
+
+          // 解析chatmsg内部字段
+          const parseChatmsg = msgStr => {
+            const result = {};
+            // 处理@S分隔的字段
+            const fields = msgStr.replace(/@S/g, '&').split('&');
+
+            fields.forEach(field => {
+              if (!field) return;
+
+              // 处理@A分隔的键值对
+              const [key, value] = field.split('@A');
+              if (key && value !== undefined) {
+                result[key] = value;
+              }
+            });
+
+            return result;
+          };
+
+          const chatmsgData = parseChatmsg(chatmsg);
+
+          // 计算价格（元）
+          const price =
+            parseInt(crealPriceMatch?.[1] || cpriceMatch?.[1] || '0') / 100;
+
+          // 从配置中获取持续时间
+          let duration = 60; // 默认1分钟
+          const superchatOptions = defaultOptions?.superchat?.options || [];
+          for (const option of superchatOptions) {
+            if (price >= option.minPrice) {
+              duration = option.time || 60;
+              break;
+            }
+          }
+
+          // 生成超级弹幕数据格式
+          return {
+            nn: chatmsgData.nn || '匿名用户',
+            avatar: chatmsgData.ic || '',
+            txt: chatmsgData.txt || '暂无内容',
+            price: price, // 转换为元
+            level: 0, // 从价格计算等级
+            bgColor: {
+              header: getHeaderColor(price),
+              body: getBodyColor(price),
+            },
+            textColor: '#FFFFFF',
+            nicknameColor: '#FFFFFF',
+            key: `test-key-${Math.random().toString(36).substring(2, 10)}`,
+            duration: duration, // 添加持续时间字段
+            createdAt: parseInt(nowMatch?.[1] || Date.now().toString()),
+            isExpired: false,
+          };
+        } catch (error) {
+          console.error('解析单条弹幕失败:', error, '原始数据:', line);
           return null;
         }
-        
-        const chatmsg = chatmsgMatch[1];
-        
-        // 解析公共字段
-        const cpriceMatch = line.match(/cprice@=(\d+)/);
-        const crealPriceMatch = line.match(/crealPrice@=(\d+)/);
-        const nowMatch = line.match(/now@=(\d+)/);
-        
-        // 解析chatmsg内部字段
-        const parseChatmsg = (msgStr) => {
-          const result = {};
-          // 处理@S分隔的字段
-          const fields = msgStr.replace(/@S/g, '&').split('&');
-          
-          fields.forEach(field => {
-            if (!field) return;
-            
-            // 处理@A分隔的键值对
-            const [key, value] = field.split('@A');
-            if (key && value !== undefined) {
-              result[key] = value;
-            }
-          });
-          
-          return result;
-        };
-        
-        const chatmsgData = parseChatmsg(chatmsg);
-        
-        // 计算价格（元）
-        const price = parseInt(crealPriceMatch?.[1] || cpriceMatch?.[1] || '0') / 100;
-        
-        // 从配置中获取持续时间
-        let duration = 60; // 默认1分钟
-        const superchatOptions = defaultOptions?.superchat?.options || [];
-        for (const option of superchatOptions) {
-          if (price >= option.minPrice) {
-            duration = option.time || 60;
-            break;
-          }
-        }
-        
-        // 生成超级弹幕数据格式
-        return {
-          nn: chatmsgData.nn || '匿名用户',
-          avatar: chatmsgData.ic || '',
-          txt: chatmsgData.txt || '暂无内容',
-          price: price, // 转换为元
-          level: 0, // 从价格计算等级
-          bgColor: { 
-            header: getHeaderColor(price), 
-            body: getBodyColor(price) 
-          },
-          textColor: '#FFFFFF',
-          nicknameColor: '#FFFFFF',
-          key: `test-key-${Math.random().toString(36).substring(2, 10)}`,
-          duration: duration, // 添加持续时间字段
-          createdAt: parseInt(nowMatch?.[1] || Date.now().toString()),
-          isExpired: false
-        };
-      } catch (error) {
-        console.error('解析单条弹幕失败:', error, '原始数据:', line);
-        return null;
-      }
-    }).filter(item => item !== null);
+      })
+      .filter(item => item !== null);
   } catch (error) {
     // 只在非测试环境输出错误日志
     if (process.env.NODE_ENV !== 'test') {
@@ -148,19 +151,19 @@ function getLevelByPrice(price) {
 function testSuperchatData() {
   const filePath = path.join(__dirname, '../data/superChatTestData.txt');
   console.log('开始解析超级弹幕数据...');
-  
+
   const superchatList = parseSuperchatData(filePath);
   console.log(`解析完成，共解析 ${superchatList.length} 条超级弹幕数据`);
-  
+
   // 测试数据格式
   console.log('\n测试数据格式:');
   if (superchatList.length > 0) {
     // 为每条弹幕添加等级
     const enhancedList = superchatList.map(item => ({
       ...item,
-      level: getLevelByPrice(item.price)
+      level: getLevelByPrice(item.price),
     }));
-    
+
     // 打印前5条数据
     console.log('前5条超级弹幕数据:');
     enhancedList.slice(0, 5).forEach((item, index) => {
@@ -174,41 +177,43 @@ function testSuperchatData() {
       console.log(`  身体颜色: ${item.bgColor.body}`);
       console.log(`  创建时间: ${new Date(item.createdAt).toLocaleString()}`);
     });
-    
+
     // 统计不同等级的弹幕数量
     const levelStats = {};
     enhancedList.forEach(item => {
       levelStats[item.level] = (levelStats[item.level] || 0) + 1;
     });
-    
+
     console.log('\n不同等级超级弹幕数量统计:');
-    Object.entries(levelStats).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).forEach(([level, count]) => {
-      console.log(`  等级 ${level}: ${count} 条`);
-    });
-    
+    Object.entries(levelStats)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+      .forEach(([level, count]) => {
+        console.log(`  等级 ${level}: ${count} 条`);
+      });
+
     // 计算平均价格
     const totalPrice = enhancedList.reduce((sum, item) => sum + item.price, 0);
     const avgPrice = totalPrice / enhancedList.length;
     console.log(`\n平均价格: ¥${avgPrice.toFixed(2)}`);
-    
+
     // 测试超级弹幕功能
     console.log('\n测试超级弹幕功能:');
     console.log('✓ 数据解析成功');
     console.log('✓ 数据格式符合组件要求');
     console.log('✓ 价格等级转换正确');
     console.log('✓ 颜色分配合理');
-    
+
     return {
       success: true,
       message: '超级弹幕数据解析和功能测试成功',
-      data: enhancedList
+      data: enhancedList,
     };
   } else {
     console.log('解析失败，没有获取到有效数据');
     return {
       success: false,
       message: '解析失败，没有获取到有效数据',
-      data: []
+      data: [],
     };
   }
 }
@@ -228,5 +233,5 @@ module.exports = {
   parseSuperchatData,
   getLevelByPrice,
   getHeaderColor,
-  getBodyColor
+  getBodyColor,
 };

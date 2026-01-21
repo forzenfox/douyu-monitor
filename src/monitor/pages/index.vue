@@ -790,7 +790,7 @@ watch(
       return;
     }
     let str = getClassStyle(domMonitor.value, 'backgroundColor');
-    let rgb = String(str).match(/[^\(\)]+(?=\))/g)[0];
+    let rgb = String(str).match(/[^()]+(?=\))/g)[0];
     if (n) {
       domMonitor.value.style.backgroundColor = `rgba(${rgb},0)`;
     }
