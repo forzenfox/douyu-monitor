@@ -1,6 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
-import Danmaku from '@/monitor/components/Danmaku/Danmaku.vue'
+import { describe, it, expect, vi } from 'vitest';
+import { mount } from '@vue/test-utils';
+import Danmaku from '@/monitor/components/Danmaku/Danmaku.vue';
 
 // 模拟弹幕数据
 const mockDanmakuList = [
@@ -110,7 +110,7 @@ const mockDanmakuList = [
     h97: 0,
     h98: 0,
     h99: 0,
-    h100: 0
+    h100: 0,
   },
   {
     uid: '456',
@@ -118,9 +118,9 @@ const mockDanmakuList = [
     txt: '这是另一条测试弹幕',
     level: 20,
     rgb: '00FF00',
-    col: 0
-  }
-]
+    col: 0,
+  },
+];
 
 // 模拟默认配置
 const mockOptions = {
@@ -144,11 +144,11 @@ const mockOptions = {
       keyword: '',
       filter: {
         enable: false,
-        list: []
-      }
-    }
-  }
-}
+        list: [],
+      },
+    },
+  },
+};
 
 describe('Danmaku组件测试', () => {
   // 完善mockOptions，添加必要的属性
@@ -156,7 +156,16 @@ describe('Danmaku组件测试', () => {
     mode: 'day',
     animation: false,
     danmaku: {
-      show: ['level', 'noble', 'fans', 'diamond', 'roomAdmin', 'avatar', 'vip', 'color'],
+      show: [
+        'level',
+        'noble',
+        'fans',
+        'diamond',
+        'roomAdmin',
+        'avatar',
+        'vip',
+        'color',
+      ],
       options: {
         level: true,
         noble: true,
@@ -175,11 +184,11 @@ describe('Danmaku组件测试', () => {
         keyword: '',
         filter: {
           enable: false,
-          list: []
-        }
-      }
-    }
-  }
+          list: [],
+        },
+      },
+    },
+  };
 
   // 完善弹幕数据，添加必要的字段
   const completeMockDanmakuList = mockDanmakuList.map(item => ({
@@ -195,29 +204,29 @@ describe('Danmaku组件测试', () => {
     color: 0,
     nn: item.nn,
     txt: item.txt,
-    avatar: item.uid
-  }))
+    avatar: item.uid,
+  }));
 
   it('测试弹幕渲染功能', () => {
     const wrapper = mount(Danmaku, {
       props: {
         options: completeMockOptions,
-        danmakuList: completeMockDanmakuList
-      }
-    })
-    
+        danmakuList: completeMockDanmakuList,
+      },
+    });
+
     // 检查组件是否正常渲染
-    expect(wrapper.exists()).toBe(true)
-    
+    expect(wrapper.exists()).toBe(true);
+
     // 检查是否渲染了所有弹幕（使用实际组件中的.item类）
-    const danmakuItems = wrapper.findAll('.item')
-    expect(danmakuItems.length).toBe(completeMockDanmakuList.length)
-    
+    const danmakuItems = wrapper.findAll('.item');
+    expect(danmakuItems.length).toBe(completeMockDanmakuList.length);
+
     // 检查弹幕内容是否正确
-    expect(danmakuItems[0].text()).toContain('测试用户1')
-    expect(danmakuItems[0].text()).toContain('这是一条测试弹幕')
-  })
-  
+    expect(danmakuItems[0].text()).toContain('测试用户1');
+    expect(danmakuItems[0].text()).toContain('这是一条测试弹幕');
+  });
+
   it('测试弹幕过滤功能', () => {
     const filteredOptions = {
       ...completeMockOptions,
@@ -228,24 +237,24 @@ describe('Danmaku组件测试', () => {
           keyword: '另一条',
           filter: {
             enable: true,
-            list: ['这是一条']
-          }
-        }
-      }
-    }
-    
+            list: ['这是一条'],
+          },
+        },
+      },
+    };
+
     const wrapper = mount(Danmaku, {
       props: {
         options: filteredOptions,
-        danmakuList: completeMockDanmakuList
-      }
-    })
-    
+        danmakuList: completeMockDanmakuList,
+      },
+    });
+
     // 检查是否只渲染了符合条件的弹幕（使用.item类）
-    const danmakuItems = wrapper.findAll('.item')
-    expect(danmakuItems.length).toBe(completeMockDanmakuList.length) // 过滤功能可能在组件外部实现
-  })
-  
+    const danmakuItems = wrapper.findAll('.item');
+    expect(danmakuItems.length).toBe(completeMockDanmakuList.length); // 过滤功能可能在组件外部实现
+  });
+
   it('测试弹幕样式自定义', () => {
     const styledOptions = {
       ...completeMockOptions,
@@ -253,23 +262,23 @@ describe('Danmaku组件测试', () => {
         ...completeMockOptions.danmaku,
         options: {
           ...completeMockOptions.danmaku.options,
-          avatar: true
-        }
-      }
-    }
-    
+          avatar: true,
+        },
+      },
+    };
+
     const wrapper = mount(Danmaku, {
       props: {
         options: styledOptions,
-        danmakuList: completeMockDanmakuList
-      }
-    })
-    
+        danmakuList: completeMockDanmakuList,
+      },
+    });
+
     // 检查是否显示了头像（使用.item__avatar类）
-    const avatars = wrapper.findAll('.item__avatar')
-    expect(avatars.length).toBe(completeMockDanmakuList.length)
-  })
-  
+    const avatars = wrapper.findAll('.item__avatar');
+    expect(avatars.length).toBe(completeMockDanmakuList.length);
+  });
+
   it('测试重复弹幕折叠', () => {
     // 创建重复弹幕数据
     const duplicateDanmakuList = [
@@ -278,32 +287,32 @@ describe('Danmaku组件测试', () => {
         ...completeMockDanmakuList[0],
         uid: '789',
         txt: '这是一条测试弹幕',
-        key: '789-123456'
-      }
-    ]
-    
+        key: '789-123456',
+      },
+    ];
+
     const wrapper = mount(Danmaku, {
       props: {
         options: completeMockOptions,
-        danmakuList: duplicateDanmakuList
-      }
-    })
-    
+        danmakuList: duplicateDanmakuList,
+      },
+    });
+
     // 检查是否渲染了所有弹幕（使用.item类）
-    const danmakuItems = wrapper.findAll('.item')
-    expect(danmakuItems.length).toBe(duplicateDanmakuList.length) // 折叠功能可能在组件外部实现
-  })
-  
+    const danmakuItems = wrapper.findAll('.item');
+    expect(danmakuItems.length).toBe(duplicateDanmakuList.length); // 折叠功能可能在组件外部实现
+  });
+
   it('测试弹幕等级显示', () => {
     const wrapper = mount(Danmaku, {
       props: {
         options: completeMockOptions,
-        danmakuList: completeMockDanmakuList
-      }
-    })
-    
+        danmakuList: completeMockDanmakuList,
+      },
+    });
+
     // 检查是否显示了等级（使用.item__level类）
-    const levels = wrapper.findAll('.item__level')
-    expect(levels.length).toBe(completeMockDanmakuList.length)
-  })
-})
+    const levels = wrapper.findAll('.item__level');
+    expect(levels.length).toBe(completeMockDanmakuList.length);
+  });
+});

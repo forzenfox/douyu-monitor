@@ -5,3 +5,20 @@ dist-ssr
 *.local
 history
 .trae/
+playwright-report
+test-results
+
+# Vitest
+.vitest
+vitest*.log
+
+# Coverage
+/coverage
+coverage.lcov
+
+# Test logs and results
+*.log
+.test-results
+
+# Playwright screenshots
+tests/e2e/playwright/screenshots

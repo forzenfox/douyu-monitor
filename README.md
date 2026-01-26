@@ -29,7 +29,7 @@
 | Vite | 7.3.1 | 构建工具 |
 | Vant | 3.4.5 | UI 组件库 |
 | SCSS | 1.97.2 | 样式预处理器 |
-| Cypress | 15.9.0 | E2E 测试 |
+| Playwright | 1.57.0 | E2E 测试 |
 | Vitest | 4.0.17 | 单元测试 |
 | WebSocket | - | 实时数据通信 |
 
@@ -48,11 +48,18 @@ douyu-monitor/
 │   ├── App.vue             # 根组件
 │   ├── main.js             # 应用入口
 │   └── router.js           # 路由解析
-├── cypress/                # E2E 测试
 ├── tests/                  # 测试目录
+│   ├── e2e/                # 端到端测试
+│   │   └── playwright/     # Playwright 测试
+│   │       ├── config/     # 配置文件
+│   │       ├── fixtures/   # 测试夹具
+│   │       ├── pages/      # Page Object 模型
+│   │       ├── specs/      # 测试用例
+│   │       └── utils/      # 测试工具函数
 │   ├── unit/               # 单元测试
 │   ├── data/               # 测试数据
 │   └── scripts/            # 测试脚本
+├── playwright.config.js    # Playwright 配置文件
 └── docs/                   # 项目文档
 ```
 
@@ -202,7 +209,7 @@ tests/
 
 包含单元测试和 E2E 测试，确保系统稳定性和可靠性：
 
-- **测试框架**：使用 Vitest 进行单元测试，Cypress 进行 E2E 测试
+- **测试框架**：使用 Vitest 进行单元测试，Playwright 进行 E2E 测试
 - **测试覆盖率**：全面覆盖核心功能，包括数据解析、组件渲染、工具函数
 - **测试数据**：提供简化的测试数据集合，便于开发和测试
 - **测试脚本**：包含自动化测试脚本，支持快速验证功能

@@ -1,5 +1,5 @@
-@use "./_themes.scss" as *;
-@use "sass:map";
+@use './_themes.scss' as *;
+@use 'sass:map';
 
 // 声明全局变量以避免!global警告
 $theme-map: null;
@@ -11,7 +11,7 @@ $theme-map: null;
     $theme-map: $theme-map !global;
     //判断html的data-theme的属性值  #{}是sass的插值表达式
     //& sass嵌套里的父容器标识   @content是混合器插槽，像vue的slot
-    [data-theme="#{$theme-name}"] & {
+    [data-theme='#{$theme-name}'] & {
       @content;
     }
   }

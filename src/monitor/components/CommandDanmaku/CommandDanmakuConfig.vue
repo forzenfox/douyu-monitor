@@ -5,69 +5,69 @@
       <div class="field-label">指令前缀</div>
       <div class="field-content">
         <div class="prefix-input-wrapper">
-          <input 
-            type="text" 
-            class="prefix-input" 
-            v-model="localOptions.prefix" 
-            maxlength="2" 
+          <input
+            type="text"
+            class="prefix-input"
+            v-model="localOptions.prefix"
+            maxlength="2"
             @input="handleOptionChange"
             placeholder="#"
-          >
+          />
         </div>
       </div>
     </div>
-    
+
     <!-- 语音提示设置 -->
     <div class="field-item">
       <div class="field-label">语音提示</div>
       <div class="field-content">
         <div class="speak-switch-wrapper">
           <label class="switch-label">
-            <input 
-              type="checkbox" 
-              class="speak-switch" 
-              v-model="localOptions.speak" 
+            <input
+              type="checkbox"
+              class="speak-switch"
+              v-model="localOptions.speak"
               @change="handleOptionChange"
-            >
+            />
             <span class="switch-slider"></span>
           </label>
         </div>
       </div>
     </div>
-    
+
     <!-- 关键词管理 -->
     <div class="keyword-management">
       <div class="management-title">关键词管理</div>
-      
+
       <!-- 关键词列表 -->
       <div class="keyword-list">
-        <div 
-          v-for="keyword in localOptions.keywords" 
-          :key="keyword.id" 
+        <div
+          v-for="keyword in localOptions.keywords"
+          :key="keyword.id"
           class="keyword-item"
         >
           <div class="field-item">
             <div class="field-label"></div>
             <div class="field-content">
               <div class="keyword-info">
-                <input 
-                  type="checkbox" 
-                  class="keyword-checkbox" 
-                  v-model="keyword.enabled" 
+                <input
+                  type="checkbox"
+                  class="keyword-checkbox"
+                  v-model="keyword.enabled"
                   @change="handleOptionChange"
-                >
+                />
                 <span class="keyword-name">{{ keyword.name }}</span>
                 <div class="color-picker-container">
                   <span class="color-picker-label">颜色</span>
-                  <input 
-                    type="color" 
-                    class="color-picker" 
-                    v-model="keyword.color" 
+                  <input
+                    type="color"
+                    class="color-picker"
+                    v-model="keyword.color"
                     @change="handleOptionChange"
-                  >
+                  />
                 </div>
-                <button 
-                  class="delete-btn" 
+                <button
+                  class="delete-btn"
                   @click="deleteKeyword(keyword.id)"
                   title="删除"
                 >
@@ -78,7 +78,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- 添加关键词 -->
       <div class="add-keyword-section">
         <!-- 添加关键词输入区 -->
@@ -86,26 +86,26 @@
           <div class="field-label">添加关键词</div>
           <div class="field-content">
             <div class="add-keyword-input">
-              <input 
-                type="text" 
-                class="add-keyword-input-field" 
-                v-model="newKeyword" 
-                @keyup.enter="addKeyword" 
+              <input
+                type="text"
+                class="add-keyword-input-field"
+                v-model="newKeyword"
+                @keyup.enter="addKeyword"
                 placeholder="输入关键词，回车添加"
-              >
+              />
               <button class="add-btn" @click="addKeyword">添加</button>
             </div>
           </div>
         </div>
-        
+
         <!-- 预设模板 -->
         <div class="field-item">
           <div class="field-label">预设模板</div>
           <div class="field-content">
             <div class="preset-templates">
-              <button 
-                v-for="template in presetTemplates" 
-                :key="template" 
+              <button
+                v-for="template in presetTemplates"
+                :key="template"
                 @click="addPresetKeyword(template)"
                 class="template-btn"
               >
@@ -120,112 +120,129 @@
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue'
-import { Field } from 'vant'
+import { ref, watch, computed } from 'vue';
+import { Field } from 'vant';
 
 const props = defineProps({
   options: {
     type: Object,
-    required: true
-  }
-})
+    required: true,
+  },
+});
 
-const emit = defineEmits(['update:options'])
+const emit = defineEmits(['update:options']);
 
 // 本地配置副本，用于实时编辑
-const localOptions = ref(JSON.parse(JSON.stringify(props.options.commandDanmaku)))
+const localOptions = ref(
+  JSON.parse(JSON.stringify(props.options.commandDanmaku))
+);
 
 // 新关键词输入
-const newKeyword = ref('')
+const newKeyword = ref('');
 
 // 预设模板
-const presetTemplates = ['点歌', '转盘']
+const presetTemplates = ['点歌', '转盘'];
 
 // 计算背景透明度
 const backgroundOpacity = computed({
   get: () => {
-    const bgColor = localOptions.value.styles.backgroundColor || 'rgba(0, 123, 255, 0.8)'
-    const opacityMatch = bgColor.match(/rgba?\(\d+,\s*\d+,\s*\d+,\s*([\d.]+)\)/)
-    return opacityMatch ? parseFloat(opacityMatch[1]) : 0.8
+    const bgColor =
+      localOptions.value.styles.backgroundColor || 'rgba(0, 123, 255, 0.8)';
+    const opacityMatch = bgColor.match(
+      /rgba?\(\d+,\s*\d+,\s*\d+,\s*([\d.]+)\)/
+    );
+    return opacityMatch ? parseFloat(opacityMatch[1]) : 0.8;
   },
-  set: (value) => {
-    const bgColor = localOptions.value.styles.backgroundColor || 'rgba(0, 123, 255, 0.8)'
-    const rgbMatch = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+  set: value => {
+    const bgColor =
+      localOptions.value.styles.backgroundColor || 'rgba(0, 123, 255, 0.8)';
+    const rgbMatch = bgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
     if (rgbMatch) {
-      localOptions.value.styles.backgroundColor = `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${value})`
+      localOptions.value.styles.backgroundColor = `rgba(${rgbMatch[1]}, ${rgbMatch[2]}, ${rgbMatch[3]}, ${value})`;
     }
-  }
-})
+  },
+});
 
 // 监听props变化，更新本地配置
-watch(() => props.options.commandDanmaku, (newVal) => {
-  localOptions.value = JSON.parse(JSON.stringify(newVal))
-}, { deep: true })
+watch(
+  () => props.options.commandDanmaku,
+  newVal => {
+    localOptions.value = JSON.parse(JSON.stringify(newVal));
+  },
+  { deep: true }
+);
 
 // 处理配置变化
 const handleOptionChange = () => {
-  emit('update:options', { ...props.options, commandDanmaku: { ...localOptions.value } })
-}
+  emit('update:options', {
+    ...props.options,
+    commandDanmaku: { ...localOptions.value },
+  });
+};
 
 // 处理透明度变化
 const handleOpacityChange = () => {
-  handleOptionChange()
-}
+  handleOptionChange();
+};
 
 // 添加关键词
 const addKeyword = () => {
-  if (!newKeyword.value.trim()) return
-  
+  if (!newKeyword.value.trim()) return;
+
   // 检查关键词是否已存在
-  const exists = localOptions.value.keywords.some(kw => kw.name === newKeyword.value.trim())
+  const exists = localOptions.value.keywords.some(
+    kw => kw.name === newKeyword.value.trim()
+  );
   if (exists) {
-    alert('该关键词已存在')
-    return
+    alert('该关键词已存在');
+    return;
   }
-  
+
   // 生成随机颜色
-  const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16)
-  
+  const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
+
   const newKw = {
     id: `kw-${Date.now()}`,
     name: newKeyword.value.trim(),
     enabled: true,
-    color: randomColor
-  }
-  
-  localOptions.value.keywords.push(newKw)
-  newKeyword.value = ''
-  handleOptionChange()
-}
+    color: randomColor,
+  };
+
+  localOptions.value.keywords.push(newKw);
+  newKeyword.value = '';
+  handleOptionChange();
+};
 
 // 删除关键词
-const deleteKeyword = (id) => {
-  localOptions.value.keywords = localOptions.value.keywords.filter(kw => kw.id !== id)
-  handleOptionChange()
-}
+const deleteKeyword = id => {
+  localOptions.value.keywords = localOptions.value.keywords.filter(
+    kw => kw.id !== id
+  );
+  handleOptionChange();
+};
 
 // 添加预设关键词
-const addPresetKeyword = (template) => {
+const addPresetKeyword = template => {
   // 检查关键词是否已存在
-  const exists = localOptions.value.keywords.some(kw => kw.name === template)
+  const exists = localOptions.value.keywords.some(kw => kw.name === template);
   if (exists) {
-    alert('该关键词已存在')
-    return
+    alert('该关键词已存在');
+    return;
   }
-  
+
   // 生成随机颜色
-  const randomColor = '#' + Math.floor(Math.random()*16777215).toString(16)
-  
+  const randomColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
+
   const newKw = {
     id: `kw-${Date.now()}`,
     name: template,
     enabled: true,
-    color: randomColor
-  }
-  
-  localOptions.value.keywords.push(newKw)
-  handleOptionChange()
-}
+    color: randomColor,
+  };
+
+  localOptions.value.keywords.push(newKw);
+  handleOptionChange();
+};
 </script>
 
 <style lang="scss" scoped>
@@ -243,11 +260,11 @@ const addPresetKeyword = (template) => {
   margin-bottom: 16px;
   padding: 8px 0;
   border-bottom: 1px solid #ebedf0;
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     border-bottom-color: #3a3a3a;
   }
-  
+
   &:last-child {
     border-bottom: none;
     margin-bottom: 0;
@@ -263,8 +280,8 @@ const addPresetKeyword = (template) => {
   white-space: nowrap;
   margin-right: 16px;
   text-align: left;
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     color: #b0b0b0;
   }
 }
@@ -283,8 +300,8 @@ const addPresetKeyword = (template) => {
   font-weight: 500;
   margin: 16px 0;
   color: #646566;
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     color: #b0b0b0;
   }
 }
@@ -306,13 +323,13 @@ const addPresetKeyword = (template) => {
   background-color: #fff;
   transition: all 0.3s ease;
   text-align: center;
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     background-color: #3a3a3a;
     border-color: #4a4a4a;
     color: #fff;
   }
-  
+
   &:focus {
     outline: none;
     border-color: #1989fa;
@@ -353,8 +370,8 @@ const addPresetKeyword = (template) => {
   background-color: #ebedf0;
   transition: all 0.3s ease;
   border-radius: 12px;
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     background-color: #4a4a4a;
   }
 }
@@ -362,7 +379,7 @@ const addPresetKeyword = (template) => {
 /* 滑块内圆点样式 */
 .switch-slider:before {
   position: absolute;
-  content: "";
+  content: '';
   height: 16px;
   width: 16px;
   left: 4px;
@@ -371,8 +388,8 @@ const addPresetKeyword = (template) => {
   transition: all 0.3s ease;
   border-radius: 50%;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     background-color: #3a3a3a;
   }
 }
@@ -386,14 +403,14 @@ const addPresetKeyword = (template) => {
 .speak-switch:checked + .switch-slider:before {
   transform: translateX(20px);
   background-color: white;
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     background-color: #fff;
   }
 }
 
 /* 开关激活状态下的滑块颜色 */
-[data-theme="night"] .speak-switch:checked + .switch-slider {
+[data-theme='night'] .speak-switch:checked + .switch-slider {
   background-color: #40a9ff;
 }
 
@@ -429,8 +446,8 @@ const addPresetKeyword = (template) => {
   font-weight: 500;
   color: #333;
   min-width: 80px;
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     color: #fff;
   }
 }
@@ -446,8 +463,8 @@ const addPresetKeyword = (template) => {
 .color-picker-label {
   font-size: 12px;
   color: #909399;
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     color: #999;
   }
 }
@@ -480,7 +497,7 @@ const addPresetKeyword = (template) => {
   justify-content: center;
   transition: all 0.3s ease;
   opacity: 0.8;
-  
+
   &:hover {
     opacity: 1;
     background-color: #ff7875;
@@ -512,13 +529,13 @@ const addPresetKeyword = (template) => {
   font-size: 14px;
   background-color: #fff;
   transition: all 0.3s ease;
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     background-color: #3a3a3a;
     border-color: #4a4a4a;
     color: #fff;
   }
-  
+
   &:focus {
     outline: none;
     border-color: #1989fa;
@@ -537,7 +554,7 @@ const addPresetKeyword = (template) => {
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
-  
+
   &:hover {
     background-color: #40a9ff;
   }
@@ -561,16 +578,16 @@ const addPresetKeyword = (template) => {
   font-size: 14px;
   cursor: pointer;
   transition: all 0.3s ease;
-  
-  [data-theme="night"] & {
+
+  [data-theme='night'] & {
     background-color: #3a3a3a;
     color: #b0b0b0;
   }
-  
+
   &:hover {
     background-color: #e4e6eb;
-    
-    [data-theme="night"] & {
+
+    [data-theme='night'] & {
       background-color: #4a4a4a;
     }
   }
@@ -584,34 +601,34 @@ const addPresetKeyword = (template) => {
     gap: 8px;
     padding: 12px 0;
   }
-  
+
   .field-label {
     width: auto;
     margin-right: 0;
     font-size: 13px;
   }
-  
+
   .field-content {
     width: 100%;
   }
-  
+
   .keyword-info {
     flex-wrap: wrap;
     gap: 10px;
     align-items: center;
   }
-  
+
   .keyword-checkbox {
     order: 1;
   }
-  
+
   .keyword-name {
     order: 2;
     flex: 1;
     min-width: 60px;
     font-size: 13px;
   }
-  
+
   .color-picker-container {
     order: 3;
     flex: 1;
@@ -619,52 +636,52 @@ const addPresetKeyword = (template) => {
     justify-content: flex-start;
     gap: 6px;
   }
-  
+
   .color-picker-label {
     font-size: 11px;
   }
-  
+
   .color-picker {
     width: 28px;
     height: 28px;
   }
-  
+
   .delete-btn {
     order: 4;
     width: 22px;
     height: 22px;
     font-size: 12px;
   }
-  
+
   .add-keyword-input {
     flex-direction: column;
     align-items: stretch;
     gap: 8px;
   }
-  
+
   .add-keyword-input-field {
     width: 100%;
     max-width: none;
     padding: 10px 12px;
     font-size: 13px;
   }
-  
+
   .add-btn {
     width: 100%;
     padding: 10px 16px;
     font-size: 13px;
   }
-  
+
   .prefix-input {
     width: 100%;
     padding: 10px 12px;
     font-size: 13px;
   }
-  
+
   .preset-templates {
     gap: 6px;
   }
-  
+
   .template-btn {
     padding: 5px 10px;
     font-size: 13px;

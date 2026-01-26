@@ -12,7 +12,7 @@ function parseDanmuData(filePath) {
     const fileContent = fs.readFileSync(filePath, 'utf8');
     // 按换行分割数据
     const lines = fileContent.trim().split('\n');
-    
+
     // 解析每一行数据
     return lines
       .filter(line => line.trim() !== '') // 过滤空行
@@ -116,13 +116,16 @@ function parseDanmuData(filePath) {
             styleType: ct,
             isSpecial: [2, 14].includes(ct),
             createdAt: cst,
-            key: cid || `danmu-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`
+            key:
+              cid ||
+              `danmu-${Date.now()}-${Math.random().toString(36).substring(2, 10)}`,
           };
         } catch (error) {
           console.error('解析单条弹幕失败:', error, '原始数据:', line);
           return null;
         }
-      }).filter(item => item !== null);
+      })
+      .filter(item => item !== null);
   } catch (error) {
     // 只在非测试环境输出错误日志
     if (process.env.NODE_ENV !== 'test') {
@@ -138,10 +141,10 @@ function parseDanmuData(filePath) {
 function testDanmuData() {
   const filePath = path.join(__dirname, '../data/danmuTestDataSimplified.txt');
   console.log('开始解析弹幕数据...');
-  
+
   const danmuList = parseDanmuData(filePath);
   console.log(`解析完成，共解析 ${danmuList.length} 条弹幕数据`);
-  
+
   // 测试数据格式
   console.log('\n测试数据格式:');
   if (danmuList.length > 0) {
@@ -160,36 +163,38 @@ function testDanmuData() {
       console.log(`  是否特殊样式: ${item.isSpecial}`);
       console.log(`  创建时间: ${new Date(item.createdAt).toLocaleString()}`);
     });
-    
+
     // 统计不同样式的弹幕数量
     const styleStats = {};
     danmuList.forEach(item => {
       styleStats[item.styleType] = (styleStats[item.styleType] || 0) + 1;
     });
-    
+
     console.log('\n不同样式弹幕数量统计:');
-    Object.entries(styleStats).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).forEach(([style, count]) => {
-      console.log(`  样式 ${style}: ${count} 条`);
-    });
-    
+    Object.entries(styleStats)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+      .forEach(([style, count]) => {
+        console.log(`  样式 ${style}: ${count} 条`);
+      });
+
     // 测试弹幕功能
     console.log('\n测试弹幕功能:');
     console.log('✓ 数据解析成功');
     console.log('✓ 数据格式符合组件要求');
     console.log('✓ 不同样式弹幕均能正确解析');
     console.log('✓ 衍生字段生成正确');
-    
+
     return {
       success: true,
       message: '弹幕数据解析和功能测试成功',
-      data: danmuList
+      data: danmuList,
     };
   } else {
     console.log('解析失败，没有获取到有效数据');
     return {
       success: false,
       message: '解析失败，没有获取到有效数据',
-      data: []
+      data: [],
     };
   }
 }
@@ -206,5 +211,5 @@ if (result.success) {
 
 // 导出函数，方便在其他地方使用
 module.exports = {
-  parseDanmuData
+  parseDanmuData,
 };
