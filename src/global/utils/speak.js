@@ -10,6 +10,15 @@ let lastText = '';
 let lastSpeakTime = 0;
 const SPEAK_INTERVAL = 10 * 1000; // 相同文本最小播放间隔（毫秒）
 
+/**
+ * 重置语音播放状态（仅用于测试）
+ */
+export function resetSpeakState() {
+  isSpeaking = false;
+  lastText = '';
+  lastSpeakTime = 0;
+}
+
 export function speakText(text, rate = 1) {
   // 检查浏览器是否支持语音合成
   if (!('speechSynthesis' in window)) {
@@ -27,6 +36,10 @@ export function speakText(text, rate = 1) {
   if (text === lastText && now - lastSpeakTime < SPEAK_INTERVAL) {
     return;
   }
+
+  // 更新最后播放时间和文本
+  lastText = text;
+  lastSpeakTime = now;
 
   // 移除了取消当前播放的逻辑，让语音可以排队播放
   // 浏览器的 speechSynthesis API 会自动处理播放队列，按顺序播放
@@ -46,8 +59,6 @@ export function speakText(text, rate = 1) {
   // 播放开始事件
   speech.onstart = () => {
     isSpeaking = true;
-    lastText = text;
-    lastSpeakTime = now;
   };
 
   // 播放结束事件

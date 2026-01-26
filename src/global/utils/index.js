@@ -3,8 +3,11 @@ export function getRandom(min, max) {
 }
 
 export function getStrMiddle(str, before, after) {
-  let m = str.match(new RegExp(before + '(.*?)' + after));
-  return m ? m[1] : false;
+  const start = str.indexOf(before);
+  if (start === -1) return false;
+  const end = str.indexOf(after, start + before.length);
+  if (end === -1) return false;
+  return str.substring(start + before.length, end);
 }
 
 export function saveLocalData(name, data) {
@@ -16,12 +19,22 @@ export function getLocalData(name) {
 }
 
 export function deepCopy(v) {
+  if (v === undefined) return undefined;
   return JSON.parse(JSON.stringify(v));
+}
+
+// 检测是否为IE浏览器
+export function isIE() {
+  // 简单判断ie6~8，同时允许通过环境变量强制设置IE模式用于测试
+  if (typeof window !== 'undefined' && window.__IE_MODE__) {
+    return true;
+  }
+  return !+'\v1';
 }
 
 export function getClassStyle(dom, attr) {
   // 获取dom的class里的css属性值
-  var ie = !+'\v1'; //简单判断ie6~8
+  var ie = isIE();
   if (attr == 'backgroundPosition') {
     //IE6~8不兼容backgroundPosition写法，识别backgroundPositionX/Y
     if (ie) {
@@ -94,7 +107,7 @@ export function getNowDate() {
     hour = '0' + hour;
   }
   if (minute < 10) {
-    minute = '0' + hour;
+    minute = '0' + minute;
   }
   if (second < 10) {
     second = '0' + second;

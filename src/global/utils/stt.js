@@ -15,11 +15,12 @@ class STT {
   }
 
   escape(v) {
+    if (v === null || v === undefined) return '';
     return v.toString().replace(/@/g, '@A').replace(/\//g, '@S');
   }
 
   unescape(v) {
-    if (!v) return;
+    if (v === null || v === undefined) return '';
     return v.toString().replace(/@A/g, '@').replace(/@S/g, '/');
   }
 
@@ -30,7 +31,7 @@ class STT {
         .join('');
     } else if (Array.isArray(raw)) {
       return raw.map(v => `${this.escape(this.serialize(v))}/`).join('');
-    } else if (this.isString(raw) || this.isNumber(raw)) {
+    } else if (this.isString(raw) || this.isNumber(raw) || typeof raw === 'boolean') {
       return raw.toString();
     }
   }

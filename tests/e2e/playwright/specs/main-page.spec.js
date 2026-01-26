@@ -7,8 +7,8 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Main Page E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // 访问测试页面，使用房间号参数
-    await page.goto('/?roomId=317422');
+    // 访问测试页面
+    await page.goto('/');
     // 等待页面加载完成
     await page.waitForLoadState('domcontentloaded');
     // 等待3秒钟，让动态内容加载
@@ -56,6 +56,25 @@ test.describe('Main Page E2E Tests', () => {
     // 截取页面截图，用于验证页面状态
     await page.screenshot({
       path: 'tests/e2e/playwright/screenshots/main-page.png',
+      fullPage: true,
+    });
+  });
+
+  test('should test config page access', async ({ page }) => {
+    // 测试配置页面访问功能
+    // 首先进入配置页面
+    await page.goto('/?roomId=317422&config=1');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(2000);
+
+    // 验证配置页面加载成功
+    const bodyContent = await page.textContent('body');
+    expect(bodyContent).not.toContain('404');
+    expect(bodyContent).not.toContain('Not Found');
+
+    // 截图记录配置页面状态
+    await page.screenshot({
+      path: 'tests/e2e/playwright/screenshots/config-page.png',
       fullPage: true,
     });
   });

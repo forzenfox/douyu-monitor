@@ -44,8 +44,9 @@ function reloadApp() {
 
 onMounted(() => {
   // 注册全局错误处理
-  const app = document.querySelector('#app').__vue_app__;
-  if (app) {
+  const appElement = document.querySelector('#app');
+  if (appElement && appElement.__vue_app__) {
+    const app = appElement.__vue_app__;
     app.config.errorHandler = (error, instance, info) => {
       console.error('全局错误:', error, instance, info);
       hasError.value = true;
