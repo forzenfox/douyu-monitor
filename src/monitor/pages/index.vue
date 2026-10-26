@@ -42,6 +42,12 @@
       :options="options"
       :commandDanmakuList="commandDanmakuList"
     ></CommandDanmaku>
+    <UserDanmaku
+      v-if="options.switch.includes('userDanmaku')"
+      :maxOrder="maxOrder"
+      :options="options"
+      :userDanmakuList="userDanmakuList"
+    ></UserDanmaku>
   </div>
   <Popup
     class="popup"
@@ -174,6 +180,9 @@
               <Checkbox name="danmaku" shape="square">弹幕</Checkbox>
               <Checkbox name="superchat" shape="square">超级弹幕</Checkbox>
               <Checkbox name="commandDanmaku" shape="square">指令弹幕</Checkbox>
+              <Checkbox name="userDanmaku" shape="square"
+                >指定用户弹幕</Checkbox
+              >
             </CheckboxGroup>
           </template>
         </Field>
@@ -368,6 +377,12 @@
           @update:options="onUpdateOptions"
         />
       </Tab>
+      <Tab title="指定用户弹幕">
+        <UserDanmakuConfig
+          :options="options"
+          @update:options="onUpdateOptions"
+        />
+      </Tab>
     </Tabs>
   </Popup>
 </template>
@@ -383,6 +398,8 @@ import Enter from '../components/Enter/Enter.vue';
 import Superchat from '../components/Superchat/Superchat.vue';
 import CommandDanmaku from '../components/CommandDanmaku/CommandDanmaku.vue';
 import CommandDanmakuConfig from '../components/CommandDanmaku/CommandDanmakuConfig.vue';
+import UserDanmaku from '../components/UserDanmaku/UserDanmaku.vue';
+import UserDanmakuConfig from '../components/UserDanmaku/UserDanmakuConfig.vue';
 
 import {
   Popup,
@@ -434,6 +451,7 @@ let {
   giftListSave,
   superchatListSave,
   commandDanmakuListSave,
+  userDanmakuList,
   isConnected,
   reconnectCount,
 } = useWebsocket(options, allGiftData);
@@ -448,6 +466,7 @@ let maxOrder = computed(() => {
     'danmaku',
     'superchat',
     'commandDanmaku',
+    'userDanmaku',
   ];
   for (const key of enabledModules) {
     if (options.value.switch.includes(key) && options.value.order[key] > ret) {
@@ -471,8 +490,16 @@ onMounted(async () => {
     options.value = localData;
   }
 
+  // 记录是否为不含指定用户弹幕的旧配置
+  const isLegacyOptions = !options.value.userDanmaku;
+
   // 格式化Options，以保证向下兼容
   options.value = formatObj(options.value, defaultOptions);
+
+  // 旧配置升级后默认展示新增的指定用户弹幕模块
+  if (isLegacyOptions && !options.value.switch.includes('userDanmaku')) {
+    options.value.switch.push('userDanmaku');
+  }
 
   // 确保所有模块的order值固定，保证修改配置后区域位置不会变化
   options.value.order.enter = 0;
@@ -480,6 +507,10 @@ onMounted(async () => {
   options.value.order.danmaku = 2;
   options.value.order.superchat = 3;
   options.value.order.commandDanmaku = 4;
+  options.value.order.userDanmaku = 5;
+
+  // 归一化模块占比，兼容旧配置（旧配置无 userDanmaku，合计会超过 100%）
+  normalizeModuleSize(options.value);
 
   // 确保指令弹幕配置的完整性
   if (options.value.commandDanmaku) {
@@ -624,6 +655,48 @@ function onClickMonitor() {
   isShowOption.value = true;
 }
 
+/**
+ * 归一化模块占比，保证所有模块合计不超过 100%
+ * 用于兼容新增 userDanmaku 前的本地旧配置
+ * @param {Object} optionsValue - 当前配置
+ */
+function normalizeModuleSize(optionsValue) {
+  if (!optionsValue?.size) return;
+
+  const moduleKeys = [
+    'enter',
+    'gift',
+    'danmaku',
+    'superchat',
+    'commandDanmaku',
+    'userDanmaku',
+  ];
+  const total = moduleKeys.reduce(
+    (sum, key) => sum + (Number(optionsValue.size[key]) || 0),
+    0
+  );
+  if (total <= 100 || total <= 0) return;
+
+  moduleKeys.forEach(key => {
+    optionsValue.size[key] = Math.round(
+      ((Number(optionsValue.size[key]) || 0) / total) * 100
+    );
+  });
+
+  // 修正四舍五入误差，保证合计为 100
+  const roundedTotal = moduleKeys.reduce(
+    (sum, key) => sum + optionsValue.size[key],
+    0
+  );
+  const diff = 100 - roundedTotal;
+  if (diff !== 0) {
+    const largestKey = moduleKeys.reduce((a, b) =>
+      optionsValue.size[a] >= optionsValue.size[b] ? a : b
+    );
+    optionsValue.size[largestKey] += diff;
+  }
+}
+
 function onChangeSwitch(list) {
   // 保持固定的order值，不随勾选顺序变化
   // 进场信息 → 礼物信息 → 超级弹幕 → 普通弹幕 → 指令弹幕
@@ -632,6 +705,7 @@ function onChangeSwitch(list) {
   options.value.order.danmaku = 2;
   options.value.order.superchat = 3;
   options.value.order.commandDanmaku = 4;
+  options.value.order.userDanmaku = 5;
 }
 
 function onClickChangeMode() {
