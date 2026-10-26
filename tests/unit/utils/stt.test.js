@@ -186,11 +186,11 @@ describe('STT 类测试', () => {
       // 测试字符串类型检查
       const stringResult = stt.serialize('explicit string');
       expect(stringResult).toBe('explicit string');
-      
+
       // 测试数字类型检查
       const numberResult = stt.serialize(789);
       expect(numberResult).toBe('789');
-      
+
       // 确保isString和isNumber方法被正确调用
       const stringCheck = stt.isString('test');
       const numberCheck = stt.isNumber(123);

@@ -31,7 +31,11 @@ class STT {
         .join('');
     } else if (Array.isArray(raw)) {
       return raw.map(v => `${this.escape(this.serialize(v))}/`).join('');
-    } else if (this.isString(raw) || this.isNumber(raw) || typeof raw === 'boolean') {
+    } else if (
+      this.isString(raw) ||
+      this.isNumber(raw) ||
+      typeof raw === 'boolean'
+    ) {
       return raw.toString();
     }
   }
