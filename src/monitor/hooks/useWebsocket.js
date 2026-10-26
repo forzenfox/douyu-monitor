@@ -5,6 +5,30 @@ import { getStrMiddle } from '@/global/utils';
 import { nobleData } from '@/global/utils/dydata/nobleData.js';
 import { speakText } from '@/global/utils/speak.js';
 
+/**
+ * 判断昵称是否命中指定用户列表（精确匹配，忽略首尾空格）
+ * @param {Object} userDanmakuConfig - 指定用户弹幕配置
+ * @param {string} nickname - 弹幕昵称
+ * @returns {boolean} 是否命中
+ */
+export function matchUserDanmaku(userDanmakuConfig, nickname) {
+  if (!userDanmakuConfig || !Array.isArray(userDanmakuConfig.users)) {
+    return false;
+  }
+
+  const target = String(nickname || '').trim();
+  if (target === '') {
+    return false;
+  }
+
+  return userDanmakuConfig.users.some(user => {
+    if (!user || user.enabled === false) {
+      return false;
+    }
+    return String(user.name || '').trim() === target;
+  });
+}
+
 export function useWebsocket(options, allGiftData) {
   let ws = null;
   let stt = new STT();
@@ -13,6 +37,7 @@ export function useWebsocket(options, allGiftData) {
   let giftList = ref([]);
   let superchatList = ref([]);
   let commandDanmakuList = ref([]);
+  let userDanmakuList = ref([]);
 
   // 连接状态
   let isConnected = ref(false);
@@ -23,6 +48,7 @@ export function useWebsocket(options, allGiftData) {
   let giftListSave = [];
   let superchatListSave = [];
   let commandDanmakuListSave = [];
+  let userDanmakuListSave = [];
 
   // 超级弹幕映射表，用于存储用户的礼物贡献
   let superchatMap = {};
@@ -393,9 +419,27 @@ export function useWebsocket(options, allGiftData) {
       return;
     }
 
-    // 处理普通弹幕
-    if (msgType === 'chatmsg' && options.value.switch.includes('danmaku')) {
+    // 处理弹幕消息
+    if (msgType === 'chatmsg') {
       let data = stt.deserialize(msg);
+
+      // 指定用户弹幕：独立抓取，不受普通弹幕开关与屏蔽规则影响
+      if (matchUserDanmaku(options.value.userDanmaku, data.nn)) {
+        const userDanmaku = generateUserDanmaku(data);
+        if (userDanmakuList.value.length + 1 > options.value.threshold) {
+          userDanmakuList.value.shift();
+        }
+        userDanmakuList.value.push(userDanmaku);
+        if (options.value.isSaveData) {
+          userDanmakuListSave.push(msg);
+        }
+      }
+
+      // 普通弹幕模块未开启时，无需继续处理普通弹幕相关逻辑
+      if (!options.value.switch.includes('danmaku')) {
+        return;
+      }
+
       // 超管弹幕
       if (!checkDanmakuValid(data)) {
         return;
@@ -946,6 +990,27 @@ export function useWebsocket(options, allGiftData) {
     };
   };
 
+  /**
+   * 生成指定用户弹幕对象
+   * @param {Object} data - 弹幕消息数据
+   * @returns {Object} 指定用户弹幕对象
+   */
+  const generateUserDanmaku = data => ({
+    id: data.cid || `${Date.now()}${Math.random()}`,
+    userId: data.uid,
+    userName: data.nn,
+    userLevel: Number(data.level) || 0,
+    content: data.txt,
+    timestamp: Date.now(),
+    isExpired: false,
+    userInfo: {
+      avatar: data.ic,
+      fansLevel: Number(data.bl) || 0,
+      nobleLevel: Number(data.nl) || 0,
+      isRoomAdmin: Number(data.rg) === 4,
+    },
+  });
+
   return {
     connectWs,
     danmakuList,
@@ -953,11 +1018,13 @@ export function useWebsocket(options, allGiftData) {
     giftList,
     superchatList,
     commandDanmakuList,
+    userDanmakuList,
     danmakuListSave,
     enterListSave,
     giftListSave,
     superchatListSave,
     commandDanmakuListSave,
+    userDanmakuListSave,
     isConnected,
     reconnectCount,
   };

@@ -7,11 +7,12 @@ export const defaultOptions = {
   align: 'left',
   // 每个模块的占比%
   size: {
-    enter: 12,
-    gift: 13,
-    danmaku: 35,
-    superchat: 20,
-    commandDanmaku: 20,
+    enter: 10,
+    gift: 11,
+    danmaku: 28,
+    superchat: 17,
+    commandDanmaku: 17,
+    userDanmaku: 17,
   },
   // 每个模块的排序
   order: {
@@ -20,9 +21,17 @@ export const defaultOptions = {
     danmaku: 2,
     superchat: 3,
     commandDanmaku: 4,
+    userDanmaku: 5,
   },
   // 每个模块开关，按顺序排
-  switch: ['enter', 'gift', 'danmaku', 'superchat', 'commandDanmaku'], // 默认不勾选进场和礼物
+  switch: [
+    'enter',
+    'gift',
+    'danmaku',
+    'superchat',
+    'commandDanmaku',
+    'userDanmaku',
+  ], // 默认不勾选进场和礼物
   // 消息上限
   threshold: 100,
   // 字号
@@ -121,5 +130,10 @@ export const defaultOptions = {
       { id: 'kw-1', name: '点歌', enabled: true, color: '#007bff' },
       { id: 'kw-2', name: '转盘', enabled: true, color: '#28a745' },
     ],
+  },
+  // 指定用户弹幕设置
+  userDanmaku: {
+    // 指定用户列表，按昵称精确匹配
+    users: [],
   },
 };
