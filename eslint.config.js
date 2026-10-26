@@ -109,6 +109,18 @@ export default [
     },
   },
   {
+    // 单元测试运行在 Node + jsdom 环境，补充测试文件所需的全局变量
+    files: ['tests/**/*.js'],
+    languageOptions: {
+      globals: {
+        global: true,
+        Event: true,
+        URL: true,
+        beforeEach: true,
+      },
+    },
+  },
+  {
     files: ['cypress/**/*.js'],
     languageOptions: {
       ecmaVersion: 12,
