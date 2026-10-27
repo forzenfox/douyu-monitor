@@ -115,6 +115,7 @@ export default [
       globals: {
         global: true,
         Event: true,
+        KeyboardEvent: true,
         URL: true,
         beforeEach: true,
       },

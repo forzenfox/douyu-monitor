@@ -30,3 +30,6 @@ export const DEFAULT_RID = '317422';
 
 // 页面路径标识
 export const PAGE_TYPE = 'lvjiang';
+
+// 页面路径末段（访问该路径直接进入团播看板）
+export const PAGE_PATH = 'lvjiangqingchuntuan';
