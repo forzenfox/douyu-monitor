@@ -1,5 +1,16 @@
 # GitHub Pages 部署解决方案
 
+## 自定义域名部署说明（2026-10-27 更新）
+
+当前站点通过 GitHub Pages 自定义域名 `dm.forzenfox.com` 对外访问（Cloudflare 仅做 DNS 代理，CNAME 指向 `forzenfox.github.io`）。GitHub Pages 会把项目站点发布到自定义域名的**根路径**，因此：
+
+- `vite.config.js` 中的 `base` 固定为 `/`，**不使用动态 base**；
+- 构建产物中的资源路径为 `/assets/...`，与 Artifact 根目录（`dist`）一致；
+- 历史文档中的 `https://forzenfox.github.io/douyu-monitor/...` 地址会被 GitHub Pages 301 重定向到 `https://dm.forzenfox.com/...`，路径不变，旧链接仍可用；
+- 房间号路径（如 `/317422`）通过 `dist/404.html` 回退到单页应用，该机制保持不变。
+
+> 若未来需要同时部署到 `https://<user>.github.io/douyu-monitor/` 子路径，需要重新评估 `base` 配置（如引入构建环境变量），当前不启用。
+
 ## 问题分析
 GitHub Pages是静态网站托管服务，只能访问静态资源。当访问类似 `https://forzenfox.github.io/douyu-monitor/317422` 这样带有房间号的URL时，GitHub Pages会尝试查找名为 `317422` 的静态文件，找不到就返回404错误，而我们的项目需要从URL中提取房间号并动态加载内容。
 

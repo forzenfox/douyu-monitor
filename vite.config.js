@@ -8,8 +8,8 @@ export default defineConfig({
     vue(),
     // 移除vite-plugin-style-import插件，避免生成错误的绝对路径导入
   ],
-  // GitHub Pages部署配置
-  base: '/douyu-monitor/',
+  // GitHub Pages 已启用自定义域名 dm.forzenfox.com，站点部署在域名根路径，base 固定为 '/'
+  base: '/',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
