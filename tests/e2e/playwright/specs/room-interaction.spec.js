@@ -33,18 +33,20 @@ test.describe('Room Interaction Tests', () => {
     const testRoomIds = ['317422', '123456'];
 
     for (const roomId of testRoomIds) {
+      // 回到无房间号的入口页，重新触发房间号输入弹窗
+      await page.goto('/');
+      await page.waitForLoadState('domcontentloaded');
+
       // 输入房间号
-      const roomInput = await page.locator('input[type="text"]');
+      const roomInput = page.locator('input[type="text"]');
       await roomInput.fill(roomId);
 
       // 点击确定按钮
-      const confirmButton = await page.locator('button:has-text("确定")');
+      const confirmButton = page.locator('button:has-text("确定")');
       await confirmButton.click();
 
-      // 等待页面响应
-      await page.waitForTimeout(2000);
-
-      // 验证页面仍然正常运行
+      // 确定后跳转到对应房间页，验证房间号写入 URL 且页面仍然正常运行
+      await page.waitForURL(`**/${roomId}`);
       await expect(page).toHaveTitle(/DouyuEx弹幕助手/);
     }
   });
