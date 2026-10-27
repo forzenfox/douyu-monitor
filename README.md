@@ -68,7 +68,7 @@ douyu-monitor/
 ### 4.1 实时数据处理
 
 - **WebSocket 连接**：通过 `useWebsocket` Hook 建立与斗鱼服务器的连接，接收实时数据
-- **数据类型**：支持弹幕、礼物、进场信息、超级弹幕、指令弹幕
+- **数据类型**：支持弹幕、礼物、进场信息、超级弹幕、指令弹幕、指定用户弹幕
 - **数据过滤**：支持按等级、关键词、昵称等条件过滤数据
 - **数据解析**：
   - 弹幕数据解析：支持多种弹幕样式（ct@=1, ct@=2, ct@=14等）
@@ -84,13 +84,16 @@ douyu-monitor/
 | Enter | 进场信息通知 |
 | Superchat | 超级弹幕显示 |
 | CommandDanmaku | 指令弹幕功能 |
+| UserDanmaku | 指定用户弹幕功能 |
 
 ### 4.3 配置系统
 
-- **布局配置**：可选择显示的信息类型
-- **样式配置**：调整字体大小、方向、对齐方式等
+- **布局配置**：可选择显示的信息类型；未勾选的模块会隐藏对应的配置页签
+- **区域占比**：直接在画面上拖动模块之间的分割线即可调整相邻区域占比（单个区域下限 5%，自动保存）
+- **样式配置**：调整字体大小、分割线方向、对齐方式等
 - **内容配置**：设置各信息类型的显示选项
 - **过滤配置**：设置屏蔽条件
+- **灰置自动删除**：指令弹幕/指定用户弹幕支持点击变灰后按设定时间（默认 30 秒）自动移除
 - **主题切换**：支持日夜模式切换
 
 ### 4.4 数据管理
@@ -235,26 +238,30 @@ tests/
 export const defaultOptions = {
     // 日间day 夜间night模式
     mode: "day",
-    // 纵向column 横向row
+    // 模块排列方向：column 纵向排列（分割线为横向）/ row 横向排列（分割线为纵向）
     direction: "column",
     // 左对齐left 右对齐right
     align: "left",
-    // 每个模块的占比%
+    // 每个模块的占比%（可直接拖动画面分割线调整，单个区域下限 5%）
     size: {
-        enter: 15,
-        gift: 25,
-        danmaku: 30,
-        superchat: 30,
+        enter: 10,
+        gift: 11,
+        danmaku: 28,
+        superchat: 17,
+        commandDanmaku: 17,
+        userDanmaku: 17,
     },
     // 每个模块的排序
     order: {
         enter: 0,
         gift: 1,
-        superchat: 2,
-        danmaku: 3,
+        danmaku: 2,
+        superchat: 3,
+        commandDanmaku: 4,
+        userDanmaku: 5,
     },
     // 每个模块开关，按顺序排
-    switch: ["enter", "gift", "danmaku", "superchat"],
+    switch: ["enter", "gift", "danmaku", "superchat", "commandDanmaku", "userDanmaku"],
     // 数据阈值
     threshold: 100,
     // 字号
@@ -355,6 +362,33 @@ export const defaultOptions = {
                 }
             }
         ]
+    },
+    // 指令弹幕设置
+    commandDanmaku: {
+        // 模块开关
+        enabled: true,
+        // 指令前缀
+        prefix: "#",
+        // 是否语音播报
+        speak: false,
+        // 灰置弹幕自动删除
+        autoRemoveExpired: false,
+        // 灰置弹幕自动删除时间（秒）
+        autoRemoveDelay: 30,
+        // 指令关键词列表
+        keywords: [
+            { id: "kw-1", name: "点歌", enabled: true, color: "#007bff" },
+            { id: "kw-2", name: "转盘", enabled: true, color: "#28a745" }
+        ]
+    },
+    // 指定用户弹幕设置
+    userDanmaku: {
+        // 指定用户列表，按昵称精确匹配
+        users: [],
+        // 灰置弹幕自动删除
+        autoRemoveExpired: false,
+        // 灰置弹幕自动删除时间（秒）
+        autoRemoveDelay: 30
     }
 }
 ```

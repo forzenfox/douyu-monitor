@@ -33,6 +33,7 @@ import Default from './templates/Default.vue';
 import { useFlexStyle } from '../../hooks/useFlexStyle.js';
 import { useBorderStyle } from '../../hooks/useBorderStyle.js';
 import { useScroll } from '../../hooks/useScroll.js';
+import { useExpiredAutoRemove } from '../../hooks/useExpiredAutoRemove.js';
 
 let props = defineProps({
   maxOrder: {
@@ -55,6 +56,10 @@ let { borderBottomStyle, borderRightStyle } = useBorderStyle(
   'commandDanmaku'
 );
 let { isLock, onScroll, onScrollUpdate, goToScrollBottom } = useScroll();
+const { schedule } = useExpiredAutoRemove(
+  () => props.options?.commandDanmaku,
+  () => props.commandDanmakuList
+);
 
 // 获取指令对应的颜色
 const getCommandColor = commandName => {
@@ -92,6 +97,7 @@ const handleCommandClick = id => {
   if (index !== -1) {
     // 直接修改原数组中的对象，标记为已过期
     props.commandDanmakuList[index].isExpired = true;
+    schedule(id);
   }
 };
 
