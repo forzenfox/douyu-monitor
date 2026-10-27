@@ -1,7 +1,7 @@
 /**
  * 斗鱼礼物数据（自动生成）
- * 更新时间: 2026-01-21T12:28:49.992Z
- * 礼物数量: 66
+ * 更新时间: 2026-10-26T09:53:34.592Z
+ * 礼物数量: 74
  */
 
 // 礼物数据结构：
@@ -90,6 +90,24 @@ export const giftData = {
     onceLimit: 0,
     skinData: {},
   },
+  20009: {
+    id: 20009,
+    name: '天秀',
+    price: 0,
+    type: 0,
+    icon: '',
+    onceLimit: 0,
+    skinData: {},
+  },
+  20010: {
+    id: 20010,
+    name: 'MVP',
+    price: 0,
+    type: 0,
+    icon: '',
+    onceLimit: 0,
+    skinData: {},
+  },
   20173: {
     id: 20173,
     name: '告白气球',
@@ -171,6 +189,15 @@ export const giftData = {
     onceLimit: 0,
     skinData: {},
   },
+  23527: {
+    id: 23527,
+    name: '人鱼仙子',
+    price: 0,
+    type: 0,
+    icon: '',
+    onceLimit: 0,
+    skinData: {},
+  },
   23622: {
     id: 23622,
     name: '至尊飞船',
@@ -234,18 +261,45 @@ export const giftData = {
     onceLimit: 0,
     skinData: {},
   },
-  24275: {
-    id: 24275,
-    name: '周年火箭',
+  24252: {
+    id: 24252,
+    name: '出征鸭',
     price: 0,
     type: 0,
     icon: '',
     onceLimit: 0,
     skinData: {},
   },
-  24276: {
-    id: 24276,
-    name: '周年庆典',
+  24253: {
+    id: 24253,
+    name: '狂欢卡',
+    price: 0,
+    type: 0,
+    icon: '',
+    onceLimit: 0,
+    skinData: {},
+  },
+  24254: {
+    id: 24254,
+    name: '狂欢飞机',
+    price: 0,
+    type: 0,
+    icon: '',
+    onceLimit: 0,
+    skinData: {},
+  },
+  24255: {
+    id: 24255,
+    name: '狂欢火箭',
+    price: 0,
+    type: 0,
+    icon: '',
+    onceLimit: 0,
+    skinData: {},
+  },
+  24256: {
+    id: 24256,
+    name: '狂欢超火',
     price: 0,
     type: 0,
     icon: '',
@@ -594,18 +648,36 @@ export const giftData = {
     onceLimit: 0,
     skinData: {},
   },
-  24730: {
-    id: 24730,
-    name: '夜猫食堂',
+  24968: {
+    id: 24968,
+    name: '驴卡',
     price: 0,
     type: 0,
     icon: '',
     onceLimit: 0,
     skinData: {},
   },
-  24731: {
-    id: 24731,
-    name: '熊猫火锅',
+  24969: {
+    id: 24969,
+    name: '驴酱战机',
+    price: 0,
+    type: 0,
+    icon: '',
+    onceLimit: 0,
+    skinData: {},
+  },
+  24970: {
+    id: 24970,
+    name: '驴酱壹号',
+    price: 0,
+    type: 0,
+    icon: '',
+    onceLimit: 0,
+    skinData: {},
+  },
+  24971: {
+    id: 24971,
+    name: '驴酱超级火箭',
     price: 0,
     type: 0,
     icon: '',
@@ -829,4 +901,4 @@ export const commonConfig = {
   },
 };
 
-export const giftDataVersion = '1768998529994';
+export const giftDataVersion = '1793008414596';
