@@ -14,6 +14,7 @@ async function initApp() {
   let info = await parseUrl();
   window.rid = info.rid;
   window.options = info.options;
+  window.pageType = info.type || 'monitor';
   logInfo();
   createApp(App).mount('#app');
 }

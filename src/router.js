@@ -1,3 +1,5 @@
+import { PAGE_TYPE, DEFAULT_RID } from './lvjiang/options.js';
+
 async function parseUrl() {
   let url = window.location.href;
   let info = {};
@@ -198,7 +200,10 @@ async function parseUrl() {
       console.log('用户取消输入房间号或弹窗创建失败');
     }
   } else {
-    // 获取真实房间号
+    // 获取真实房间号（团播看板页房间号固定，无需转换）
+    if (info.type === PAGE_TYPE) {
+      return info;
+    }
     try {
       const realRid = await getRealRid(info.rid);
       info.rid = realRid;
@@ -235,6 +240,15 @@ function getInfo(url) {
   let rid = getQueryVariable('rid');
   let options = getQueryVariable('exoptions');
   options = options ? decodeURIComponent(options) : '';
+
+  // 团播看板页：路径末段为 lvjiangqingchuntuan，房间号固定 317422（?rid= 优先）
+  const lastPath = String(url).split('?')[0].split('/').pop();
+  if (lastPath === 'lvjiangqingchuntuan') {
+    ret.type = PAGE_TYPE;
+    ret.rid = rid && rid !== '' ? rid : DEFAULT_RID;
+    return ret;
+  }
+
   if (!rid) {
     let arr = String(url).split('/');
     ret.rid = arr[arr.length - 1].split('?')[0];

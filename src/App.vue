@@ -1,7 +1,8 @@
 <template>
   <div class="app-container">
     <template v-if="!hasError">
-      <Monitor @error="handleError"></Monitor>
+      <Lvjiang v-if="pageType === 'lvjiang'" @error="handleError"></Lvjiang>
+      <Monitor v-else @error="handleError"></Monitor>
     </template>
     <div v-else class="error-container">
       <div class="error-content">
@@ -16,6 +17,10 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import Monitor from './monitor/pages/index.vue';
+import Lvjiang from './lvjiang/pages/index.vue';
+
+// 页面类型由路由解析结果写入，默认为主监控页
+const pageType = window.pageType || 'monitor';
 
 // 错误状态
 const hasError = ref(false);
