@@ -2,7 +2,10 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
+  schedule:
+    # 每日定时刷新礼物数据（UTC 18:00 = 北京时间 02:00）
+    - cron: '0 18 * * *'
 
 permissions:
   contents: read
@@ -26,6 +29,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Clear gift data cache
+        run: rm -f .gift-data-cache.json
 
       - name: Build project
         run: npm run build
