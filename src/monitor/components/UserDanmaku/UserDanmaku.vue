@@ -35,6 +35,7 @@ import Default from './templates/Default.vue';
 import { useFlexStyle } from '../../hooks/useFlexStyle.js';
 import { useBorderStyle } from '../../hooks/useBorderStyle.js';
 import { useScroll } from '../../hooks/useScroll.js';
+import { useExpiredAutoRemove } from '../../hooks/useExpiredAutoRemove.js';
 
 // 指定用户弹幕统一强调色
 const USER_DANMAKU_COLOR = '#9c27b0';
@@ -59,6 +60,10 @@ let { borderBottomStyle, borderRightStyle } = useBorderStyle(
   'userDanmaku'
 );
 let { isLock, onScroll, onScrollUpdate, goToScrollBottom } = useScroll();
+const { schedule } = useExpiredAutoRemove(
+  () => props.options?.userDanmaku,
+  () => props.userDanmakuList
+);
 
 const displayList = computed(() => props.userDanmakuList);
 
@@ -84,6 +89,7 @@ const handleUserDanmakuClick = id => {
   const index = props.userDanmakuList.findIndex(item => item.id === id);
   if (index !== -1) {
     props.userDanmakuList[index].isExpired = true;
+    schedule(id);
   }
 };
 

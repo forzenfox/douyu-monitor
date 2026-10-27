@@ -48,6 +48,19 @@
       :options="options"
       :userDanmakuList="userDanmakuList"
     ></UserDanmaku>
+    <!-- 可拖动的区域分割线：order 与前一区域一致，紧贴在它后面 -->
+    <div
+      v-for="item in splitHandles"
+      :key="`split-${item.key}`"
+      class="split-handle"
+      :class="[
+        options.direction === 'row' ? 'horizontal' : 'vertical',
+        { dragging: draggingKey === item.key },
+      ]"
+      :style="{ order: item.order }"
+      @pointerdown.stop.prevent="onSplitPointerDown($event, item)"
+      @click.stop
+    ></div>
   </div>
   <Popup
     class="popup"
@@ -186,11 +199,12 @@
             </CheckboxGroup>
           </template>
         </Field>
-        <Field label="方向">
+        <p class="split-tip">提示：可直接拖动画面中的分割线调整各区域占比</p>
+        <Field label="分割线方向">
           <template #input>
             <RadioGroup v-model="options.direction" direction="horizontal">
-              <Radio name="column">纵向</Radio>
-              <Radio name="row">横向</Radio>
+              <Radio name="column">横向</Radio>
+              <Radio name="row">纵向</Radio>
             </RadioGroup>
             <RadioGroup v-model="options.align" direction="horizontal">
               <Radio name="left">左对齐</Radio>
@@ -226,15 +240,7 @@
           </template>
         </Field>
       </Tab>
-      <Tab title="弹幕">
-        <Field label="占比">
-          <template #input>
-            <Slider
-              v-model="options.size.danmaku"
-              :disabled="maxOrder === options.order.danmaku"
-            />
-          </template>
-        </Field>
+      <Tab v-if="options.switch.includes('danmaku')" title="弹幕">
         <Field label="显示">
           <template #input>
             <CheckboxGroup
@@ -274,15 +280,7 @@
           </template>
         </Field>
       </Tab>
-      <Tab title="礼物">
-        <Field label="占比">
-          <template #input>
-            <Slider
-              v-model="options.size.gift"
-              :disabled="maxOrder === options.order.gift"
-            />
-          </template>
-        </Field>
+      <Tab v-if="options.switch.includes('gift')" title="礼物">
         <Field
           v-model="options.gift.ban.price"
           label="屏蔽单价<"
@@ -307,15 +305,7 @@
           placeholder="屏蔽粉丝牌等级"
         ></Field>
       </Tab>
-      <Tab title="进场">
-        <Field label="占比">
-          <template #input>
-            <Slider
-              v-model="options.size.enter"
-              :disabled="maxOrder === options.order.enter"
-            />
-          </template>
-        </Field>
+      <Tab v-if="options.switch.includes('enter')" title="进场">
         <Field label="显示">
           <template #input>
             <CheckboxGroup v-model="options.enter.show" direction="horizontal">
@@ -337,15 +327,7 @@
           placeholder="请输入屏蔽的等级"
         ></Field>
       </Tab>
-      <Tab title="超级弹幕">
-        <Field label="占比">
-          <template #input>
-            <Slider
-              v-model="options.size.superchat"
-              :disabled="maxOrder === options.order.superchat"
-            />
-          </template>
-        </Field>
+      <Tab v-if="options.switch.includes('superchat')" title="超级弹幕">
         <Field
           v-model="options.superchat.keyword"
           label="关键词"
@@ -371,13 +353,13 @@
           </template>
         </Field>
       </Tab>
-      <Tab title="指令弹幕">
+      <Tab v-if="options.switch.includes('commandDanmaku')" title="指令弹幕">
         <CommandDanmakuConfig
           :options="options"
           @update:options="onUpdateOptions"
         />
       </Tab>
-      <Tab title="指定用户弹幕">
+      <Tab v-if="options.switch.includes('userDanmaku')" title="指定用户弹幕">
         <UserDanmakuConfig
           :options="options"
           @update:options="onUpdateOptions"
@@ -417,6 +399,12 @@ import {
 
 import { useNormalStyle } from '../hooks/useNormalStyle.js';
 import { useWebsocket } from '../hooks/useWebsocket.js';
+import {
+  getVisibleModules,
+  calcDragDelta,
+  resolveResize,
+  normalizeVisibleSizes,
+} from '../utils/splitResize.js';
 
 import { giftData } from '@/global/utils/dydata/giftData.js';
 import {
@@ -476,6 +464,80 @@ let maxOrder = computed(() => {
   return ret;
 });
 
+// 相邻可见模块之间的分割线，可拖动调整两侧占比
+let splitHandles = computed(() => {
+  const modules = getVisibleModules(options.value);
+  return modules.slice(0, -1).map((key, index) => ({
+    key,
+    nextKey: modules[index + 1],
+    order: options.value.order[key],
+  }));
+});
+let draggingKey = ref('');
+let dragState = null;
+
+function onSplitPointerDown(event, item) {
+  if (!domMonitor.value || event.button > 0) return;
+
+  dragState = {
+    key: item.key,
+    nextKey: item.nextKey,
+    startX: event.clientX,
+    startY: event.clientY,
+    firstSize: Number(options.value.size[item.key]) || 0,
+    secondSize: Number(options.value.size[item.nextKey]) || 0,
+  };
+  draggingKey.value = item.key;
+
+  window.addEventListener('pointermove', onSplitPointerMove);
+  window.addEventListener('pointerup', onSplitPointerEnd);
+  window.addEventListener('pointercancel', onSplitPointerEnd);
+
+  // 指针捕获保证拖出分割线后仍能持续接收事件
+  try {
+    event.currentTarget?.setPointerCapture?.(event.pointerId);
+  } catch {
+    // 指针已失效时浏览器会抛错，window 监听仍可保证拖动继续
+  }
+}
+
+function onSplitPointerMove(event) {
+  if (!dragState || !domMonitor.value) return;
+
+  const containerSize =
+    options.value.direction === 'row'
+      ? domMonitor.value.clientWidth
+      : domMonitor.value.clientHeight;
+  const delta = calcDragDelta({
+    startX: dragState.startX,
+    startY: dragState.startY,
+    x: event.clientX,
+    y: event.clientY,
+    direction: options.value.direction,
+    containerSize,
+  });
+  const { first, second } = resolveResize({
+    first: dragState.firstSize,
+    second: dragState.secondSize,
+    delta,
+  });
+
+  options.value.size[dragState.key] = first;
+  options.value.size[dragState.nextKey] = second;
+}
+
+function onSplitPointerEnd() {
+  dragState = null;
+  draggingKey.value = '';
+  window.removeEventListener('pointermove', onSplitPointerMove);
+  window.removeEventListener('pointerup', onSplitPointerEnd);
+  window.removeEventListener('pointercancel', onSplitPointerEnd);
+}
+
+onBeforeUnmount(() => {
+  onSplitPointerEnd();
+});
+
 onMounted(async () => {
   let rid = window.rid;
   let propsOptions = window.options;
@@ -509,7 +571,7 @@ onMounted(async () => {
   options.value.order.commandDanmaku = 4;
   options.value.order.userDanmaku = 5;
 
-  // 归一化模块占比，兼容旧配置（旧配置无 userDanmaku，合计会超过 100%）
+  // 归一化可见模块占比，保证区域合计铺满且兼容旧配置
   normalizeModuleSize(options.value);
 
   // 确保指令弹幕配置的完整性
@@ -656,45 +718,13 @@ function onClickMonitor() {
 }
 
 /**
- * 归一化模块占比，保证所有模块合计不超过 100%
- * 用于兼容新增 userDanmaku 前的本地旧配置
+ * 归一化可见模块占比，保证合计为 100%
+ * 隐藏模块的占比会保留，重新勾选时再按比例缩放
  * @param {Object} optionsValue - 当前配置
  */
 function normalizeModuleSize(optionsValue) {
   if (!optionsValue?.size) return;
-
-  const moduleKeys = [
-    'enter',
-    'gift',
-    'danmaku',
-    'superchat',
-    'commandDanmaku',
-    'userDanmaku',
-  ];
-  const total = moduleKeys.reduce(
-    (sum, key) => sum + (Number(optionsValue.size[key]) || 0),
-    0
-  );
-  if (total <= 100 || total <= 0) return;
-
-  moduleKeys.forEach(key => {
-    optionsValue.size[key] = Math.round(
-      ((Number(optionsValue.size[key]) || 0) / total) * 100
-    );
-  });
-
-  // 修正四舍五入误差，保证合计为 100
-  const roundedTotal = moduleKeys.reduce(
-    (sum, key) => sum + optionsValue.size[key],
-    0
-  );
-  const diff = 100 - roundedTotal;
-  if (diff !== 0) {
-    const largestKey = moduleKeys.reduce((a, b) =>
-      optionsValue.size[a] >= optionsValue.size[b] ? a : b
-    );
-    optionsValue.size[largestKey] += diff;
-  }
+  optionsValue.size = normalizeVisibleSizes(optionsValue);
 }
 
 function onChangeSwitch(list) {
@@ -706,6 +736,9 @@ function onChangeSwitch(list) {
   options.value.order.superchat = 3;
   options.value.order.commandDanmaku = 4;
   options.value.order.userDanmaku = 5;
+
+  // 模块显隐变化后重新归一化可见模块占比
+  normalizeModuleSize(options.value);
 }
 
 function onClickChangeMode() {
@@ -723,6 +756,7 @@ function onClickRestOptions() {
   })
     .then(() => {
       options.value = deepCopy(defaultOptions);
+      normalizeModuleSize(options.value);
     })
     .catch(() => {});
 }
@@ -886,6 +920,30 @@ watch(
   user-select: none;
   transition: all 0.3s ease;
 }
+
+/* 可拖动分割线：不占用布局空间，覆盖在相邻区域的分隔处 */
+.split-handle {
+  position: relative;
+  z-index: 20;
+  flex: 0 0 8px;
+  touch-action: none;
+  transition: background-color 0.2s ease;
+
+  &.vertical {
+    margin: -4px 0;
+    cursor: row-resize;
+  }
+
+  &.horizontal {
+    margin: 0 -4px;
+    cursor: col-resize;
+  }
+
+  &:hover,
+  &.dragging {
+    background-color: rgba(25, 137, 250, 0.25);
+  }
+}
 .popup {
   border-radius: 16px 16px 0 0;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
@@ -939,6 +997,14 @@ watch(
         background-color: #f5f5f5;
       }
     }
+  }
+
+  .split-tip {
+    margin: 0;
+    padding: 8px 16px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #969799;
   }
 }
 

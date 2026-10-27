@@ -55,6 +55,41 @@
         </div>
       </div>
     </div>
+
+    <!-- 灰置弹幕自动删除 -->
+    <div class="field-item">
+      <div class="field-label">灰置弹幕自动删除</div>
+      <div class="field-content">
+        <label class="switch-label">
+          <input
+            type="checkbox"
+            class="auto-remove-switch"
+            v-model="localOptions.autoRemoveExpired"
+            @change="handleOptionChange"
+          />
+          <span class="switch-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- 灰置弹幕自动移除时间 -->
+    <div class="field-item">
+      <div class="field-label">自动移除时间</div>
+      <div class="field-content">
+        <div class="auto-remove-delay-wrapper">
+          <input
+            type="number"
+            class="auto-remove-delay"
+            min="1"
+            step="1"
+            :disabled="!localOptions.autoRemoveExpired"
+            v-model.number="localOptions.autoRemoveDelay"
+            @input="handleOptionChange"
+          />
+          <span class="auto-remove-unit">秒</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -166,6 +201,114 @@ const deleteUser = id => {
   display: flex;
   align-items: center;
   min-width: 0;
+}
+
+/* 灰置弹幕自动删除开关 */
+.switch-label {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.auto-remove-switch {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ebedf0;
+  transition: all 0.3s ease;
+  border-radius: 12px;
+
+  [data-theme='night'] & {
+    background-color: #4a4a4a;
+  }
+}
+
+.switch-slider:before {
+  position: absolute;
+  content: '';
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+  [data-theme='night'] & {
+    background-color: #3a3a3a;
+  }
+}
+
+.auto-remove-switch:checked + .switch-slider {
+  background-color: #1989fa;
+}
+
+.auto-remove-switch:checked + .switch-slider:before {
+  transform: translateX(20px);
+  background-color: white;
+
+  [data-theme='night'] & {
+    background-color: #fff;
+  }
+}
+
+[data-theme='night'] .auto-remove-switch:checked + .switch-slider {
+  background-color: #40a9ff;
+}
+
+/* 灰置弹幕自动移除时间输入 */
+.auto-remove-delay-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auto-remove-delay {
+  width: 80px;
+  padding: 8px 12px;
+  border: 1px solid #ebedf0;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: #fff;
+  text-align: center;
+  transition: all 0.3s ease;
+
+  [data-theme='night'] & {
+    background-color: #3a3a3a;
+    border-color: #4a4a4a;
+    color: #fff;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #1989fa;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.auto-remove-unit {
+  font-size: 14px;
+  color: #646566;
+
+  [data-theme='night'] & {
+    color: #b0b0b0;
+  }
 }
 
 .empty-tip {

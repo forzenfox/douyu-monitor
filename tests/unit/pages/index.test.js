@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import Index from '../../../src/monitor/pages/index.vue';
-import { ref } from 'vue';
+import { defaultOptions } from '../../../src/monitor/options';
+import { ref, nextTick } from 'vue';
 
 // 模拟指令弹幕配置组件
 vi.mock(
@@ -205,5 +206,186 @@ describe('Index Page', () => {
     // 测试添加模块
     const addedOptions = toggleModule(removedOptions, 'gift');
     expect(addedOptions.switch).toContain('gift');
+  });
+});
+
+describe('Index Page 分割线拖拽', () => {
+  it('默认配置下相邻模块之间各渲染一条分割线', async () => {
+    const wrapper = mount(Index);
+    await nextTick();
+
+    // 默认 6 个模块全部显示，应有 5 条分割线
+    expect(wrapper.findAll('.split-handle')).toHaveLength(5);
+    wrapper.unmount();
+  });
+
+  it('分割线数量随可见模块数量变化，并跟随前一模块的顺序', async () => {
+    window.options = JSON.stringify({
+      ...defaultOptions,
+      switch: ['danmaku', 'gift', 'enter'],
+    });
+
+    const wrapper = mount(Index);
+    await nextTick();
+
+    const handles = wrapper.findAll('.split-handle');
+    expect(handles).toHaveLength(2);
+    // enter(0) 与 gift(1) 之间、gift(1) 与 danmaku(2) 之间
+    expect(handles[0].attributes('style')).toContain('order: 0');
+    expect(handles[1].attributes('style')).toContain('order: 1');
+
+    wrapper.unmount();
+    window.options = undefined;
+  });
+
+  it('拖动分割线后相邻区域占比此消彼长并保存到本地', async () => {
+    localStorage.clear();
+    const wrapper = mount(Index);
+    await nextTick();
+
+    // 让容器拥有可计算的纵向尺寸
+    Object.defineProperty(wrapper.find('.monitor').element, 'clientHeight', {
+      value: 500,
+      configurable: true,
+    });
+
+    const handle = wrapper.findAll('.split-handle')[0];
+    handle.element.dispatchEvent(
+      new window.MouseEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        clientY: 100,
+        button: 0,
+      })
+    );
+
+    // 向下拖动 100px，相当于 20% 占比
+    window.dispatchEvent(
+      new window.MouseEvent('pointermove', { clientY: 200 })
+    );
+    window.dispatchEvent(new window.MouseEvent('pointerup'));
+    await nextTick();
+
+    const saved = JSON.parse(localStorage.getItem('monitor_options'));
+    // enter 默认 10%，gift 默认 11%，正向拖动后 gift 保留 5% 下限
+    expect(saved.size.enter).toBe(16);
+    expect(saved.size.gift).toBe(5);
+
+    wrapper.unmount();
+    localStorage.clear();
+  });
+
+  it('仅保留两个模块时，最后一个区域可被拖到最小占比', async () => {
+    localStorage.clear();
+    window.options = JSON.stringify({
+      ...defaultOptions,
+      switch: ['danmaku', 'userDanmaku'],
+    });
+
+    const wrapper = mount(Index);
+    await nextTick();
+
+    Object.defineProperty(wrapper.find('.monitor').element, 'clientHeight', {
+      value: 500,
+      configurable: true,
+    });
+
+    // 挂载时可见模块占比应被归一化为 danmaku 62% / userDanmaku 38%
+    const handle = wrapper.findAll('.split-handle')[0];
+    handle.element.dispatchEvent(
+      new window.MouseEvent('pointerdown', {
+        bubbles: true,
+        cancelable: true,
+        clientY: 100,
+        button: 0,
+      })
+    );
+    window.dispatchEvent(
+      new window.MouseEvent('pointermove', { clientY: 450 })
+    );
+    window.dispatchEvent(new window.MouseEvent('pointerup'));
+    await nextTick();
+
+    const saved = JSON.parse(localStorage.getItem('monitor_options'));
+    // 向下拖动 350px（70%），userDanmaku 缩到 5% 下限
+    expect(saved.size.danmaku).toBe(95);
+    expect(saved.size.userDanmaku).toBe(5);
+
+    wrapper.unmount();
+    window.options = undefined;
+    localStorage.clear();
+  });
+
+  it('分割线方向选项的文案与配置值语义对应', async () => {
+    localStorage.clear();
+    // 覆盖默认存根，让字段与单选项真正渲染出来
+    const wrapper = mount(Index, {
+      global: {
+        stubs: {
+          'van-popup': { template: '<div><slot /></div>' },
+          'van-tabs': { template: '<div><slot /></div>' },
+          'van-tab': { template: '<div><slot /></div>' },
+          'van-field': {
+            props: ['label'],
+            template:
+              '<div class="field-stub"><span class="field-label">{{ label }}</span><slot name="input" /></div>',
+          },
+          'van-radio-group': { template: '<div><slot /></div>' },
+          'van-radio': {
+            props: ['name'],
+            template:
+              '<label class="radio-stub" :data-name="name"><slot /></label>',
+          },
+        },
+      },
+    });
+    await nextTick();
+
+    const field = wrapper
+      .findAll('.field-stub')
+      .find(item => item.find('.field-label').text() === '分割线方向');
+    expect(field).toBeTruthy();
+
+    const options = field
+      .findAll('.radio-stub')
+      .map(radio => [radio.attributes('data-name'), radio.text()]);
+    // column 表示模块纵向排列，分隔线是横向的
+    expect(options.slice(0, 2)).toEqual([
+      ['column', '横向'],
+      ['row', '纵向'],
+    ]);
+
+    wrapper.unmount();
+    localStorage.clear();
+  });
+
+  it('只显示已勾选模块的配置入口', async () => {
+    localStorage.clear();
+    window.options = JSON.stringify({
+      ...defaultOptions,
+      switch: ['enter', 'superchat'],
+    });
+
+    // 覆盖默认存根，让弹窗与标签页内容真正渲染出来
+    const wrapper = mount(Index, {
+      global: {
+        stubs: {
+          'van-popup': { template: '<div class="popup-stub"><slot /></div>' },
+          'van-tabs': { template: '<div class="tabs-stub"><slot /></div>' },
+          'van-tab': {
+            props: ['title'],
+            template: '<div class="tab-stub">{{ title }}</div>',
+          },
+        },
+      },
+    });
+    await nextTick();
+
+    const titles = wrapper.findAll('.tab-stub').map(tab => tab.text());
+    expect(titles).toEqual(['通用', '进场', '超级弹幕']);
+
+    wrapper.unmount();
+    window.options = undefined;
+    localStorage.clear();
   });
 });

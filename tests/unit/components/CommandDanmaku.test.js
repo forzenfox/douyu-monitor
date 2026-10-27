@@ -1,8 +1,50 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
+import { ref } from 'vue';
 import CommandDanmaku from '../../../src/monitor/components/CommandDanmaku/CommandDanmaku.vue';
+import CommandDanmakuConfig from '../../../src/monitor/components/CommandDanmaku/CommandDanmakuConfig.vue';
+import { defaultOptions } from '../../../src/monitor/options';
+
+const buildCommandList = () => [
+  {
+    id: 'cmd-1',
+    userId: 'user-123',
+    userName: '测试用户1',
+    userLevel: 50,
+    content: '#点歌 青花瓷',
+    command: '点歌',
+    commandContent: '青花瓷',
+    timestamp: Date.now(),
+    userInfo: {
+      avatar: 'test/avatar1.png',
+      fansLevel: 10,
+      nobleLevel: 5,
+      isRoomAdmin: false,
+    },
+  },
+  {
+    id: 'cmd-2',
+    userId: 'user-456',
+    userName: '测试用户2',
+    userLevel: 30,
+    content: '#转盘 1',
+    command: '转盘',
+    commandContent: '1',
+    timestamp: Date.now(),
+    userInfo: {
+      avatar: 'test/avatar2.png',
+      fansLevel: 5,
+      nobleLevel: 2,
+      isRoomAdmin: true,
+    },
+  },
+];
 
 describe('CommandDanmaku Component', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   // 基础测试配置
   const baseOptions = {
     size: { commandDanmaku: 15 },
@@ -12,6 +54,8 @@ describe('CommandDanmaku Component', () => {
       enabled: true,
       maxCount: 20,
       prefix: '#',
+      autoRemoveExpired: false,
+      autoRemoveDelay: 30,
       keywords: [
         { id: 'kw-1', name: '点歌', enabled: true },
         { id: 'kw-2', name: '转盘', enabled: true },
@@ -209,5 +253,119 @@ describe('CommandDanmaku Component', () => {
     // 新弹幕应该有高亮类
     const danmakuItem = wrapper.find('.command-danmaku-item');
     expect(danmakuItem.classes()).toContain('highlight');
+  });
+
+  it('开启灰置自动删除后，点击的指令弹幕会在设定时间后移除', async () => {
+    vi.useFakeTimers();
+    const commandDanmakuList = ref(buildCommandList());
+    const options = {
+      ...baseOptions,
+      commandDanmaku: {
+        ...baseOptions.commandDanmaku,
+        autoRemoveExpired: true,
+        autoRemoveDelay: 5,
+      },
+    };
+    const wrapper = mount(CommandDanmaku, {
+      props: {
+        options,
+        commandDanmakuList: commandDanmakuList.value,
+        maxOrder: 0,
+      },
+    });
+
+    await wrapper.findAll('.command-danmaku-item')[0].trigger('click');
+    expect(commandDanmakuList.value[0].isExpired).toBe(true);
+
+    await vi.advanceTimersByTimeAsync(4999);
+    expect(commandDanmakuList.value).toHaveLength(2);
+
+    await vi.advanceTimersByTimeAsync(1);
+    expect(commandDanmakuList.value).toHaveLength(1);
+    expect(commandDanmakuList.value[0].id).toBe('cmd-2');
+    expect(wrapper.findAll('.command-danmaku-item')).toHaveLength(1);
+
+    wrapper.unmount();
+  });
+
+  it('关闭灰置自动删除时，点击的指令弹幕不会被移除', async () => {
+    vi.useFakeTimers();
+    const commandDanmakuList = ref(buildCommandList());
+    const wrapper = mount(CommandDanmaku, {
+      props: {
+        options: baseOptions,
+        commandDanmakuList: commandDanmakuList.value,
+        maxOrder: 0,
+      },
+    });
+
+    await wrapper.findAll('.command-danmaku-item')[0].trigger('click');
+    await vi.advanceTimersByTimeAsync(60000);
+
+    expect(commandDanmakuList.value).toHaveLength(2);
+    expect(commandDanmakuList.value[0].isExpired).toBe(true);
+
+    wrapper.unmount();
+  });
+});
+
+describe('CommandDanmakuConfig 灰置自动删除配置', () => {
+  const buildOptions = () => ({
+    commandDanmaku: {
+      ...defaultOptions.commandDanmaku,
+      keywords: [...defaultOptions.commandDanmaku.keywords],
+    },
+  });
+
+  it('默认关闭自动删除，时间默认为 30 秒且不可编辑', () => {
+    const wrapper = mount(CommandDanmakuConfig, {
+      props: { options: buildOptions() },
+    });
+
+    expect(defaultOptions.commandDanmaku.autoRemoveExpired).toBe(false);
+    expect(defaultOptions.commandDanmaku.autoRemoveDelay).toBe(30);
+    expect(wrapper.find('.auto-remove-switch').element.checked).toBe(false);
+
+    const delayInput = wrapper.find('.auto-remove-delay');
+    expect(delayInput.element.value).toBe('30');
+    expect(delayInput.element.disabled).toBe(true);
+  });
+
+  it('开启自动删除后时间输入框可编辑并派发配置', async () => {
+    const wrapper = mount(CommandDanmakuConfig, {
+      props: { options: buildOptions() },
+    });
+
+    await wrapper.find('.auto-remove-switch').setValue(true);
+
+    const emitted = wrapper.emitted('update:options');
+    expect(emitted).toBeTruthy();
+    const nextOptions = emitted[emitted.length - 1][0];
+    expect(nextOptions.commandDanmaku.autoRemoveExpired).toBe(true);
+    expect(wrapper.find('.auto-remove-delay').element.disabled).toBe(false);
+  });
+
+  it('修改自动移除时间后派发数值', async () => {
+    const options = buildOptions();
+    options.commandDanmaku.autoRemoveExpired = true;
+    const wrapper = mount(CommandDanmakuConfig, {
+      props: { options },
+    });
+
+    await wrapper.find('.auto-remove-delay').setValue('45');
+
+    const emitted = wrapper.emitted('update:options');
+    const nextOptions = emitted[emitted.length - 1][0];
+    expect(nextOptions.commandDanmaku.autoRemoveDelay).toBe(45);
+  });
+
+  it('关键词管理位于指令前缀之后、语音提示之前', () => {
+    const wrapper = mount(CommandDanmakuConfig, {
+      props: { options: buildOptions() },
+    });
+
+    const text = wrapper.text();
+    expect(text.indexOf('指令前缀')).toBeLessThan(text.indexOf('关键词管理'));
+    expect(text.indexOf('关键词管理')).toBeLessThan(text.indexOf('语音提示'));
   });
 });

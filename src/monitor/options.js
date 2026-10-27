@@ -125,6 +125,10 @@ export const defaultOptions = {
     prefix: '#',
     // 是否语音播报
     speak: false,
+    // 灰置弹幕自动删除
+    autoRemoveExpired: false,
+    // 灰置弹幕自动删除时间（秒）
+    autoRemoveDelay: 30,
     // 指令关键词列表
     keywords: [
       { id: 'kw-1', name: '点歌', enabled: true, color: '#007bff' },
@@ -135,5 +139,9 @@ export const defaultOptions = {
   userDanmaku: {
     // 指定用户列表，按昵称精确匹配
     users: [],
+    // 灰置弹幕自动删除
+    autoRemoveExpired: false,
+    // 灰置弹幕自动删除时间（秒）
+    autoRemoveDelay: 30,
   },
 };

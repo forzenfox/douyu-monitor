@@ -17,24 +17,6 @@
       </div>
     </div>
 
-    <!-- 语音提示设置 -->
-    <div class="field-item">
-      <div class="field-label">语音提示</div>
-      <div class="field-content">
-        <div class="speak-switch-wrapper">
-          <label class="switch-label">
-            <input
-              type="checkbox"
-              class="speak-switch"
-              v-model="localOptions.speak"
-              @change="handleOptionChange"
-            />
-            <span class="switch-slider"></span>
-          </label>
-        </div>
-      </div>
-    </div>
-
     <!-- 关键词管理 -->
     <div class="keyword-management">
       <div class="management-title">关键词管理</div>
@@ -113,6 +95,61 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 语音提示设置 -->
+    <div class="field-item">
+      <div class="field-label">语音提示</div>
+      <div class="field-content">
+        <div class="speak-switch-wrapper">
+          <label class="switch-label">
+            <input
+              type="checkbox"
+              class="speak-switch"
+              v-model="localOptions.speak"
+              @change="handleOptionChange"
+            />
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 灰置弹幕自动删除 -->
+    <div class="field-item">
+      <div class="field-label">灰置弹幕自动删除</div>
+      <div class="field-content">
+        <div class="speak-switch-wrapper">
+          <label class="switch-label">
+            <input
+              type="checkbox"
+              class="speak-switch auto-remove-switch"
+              v-model="localOptions.autoRemoveExpired"
+              @change="handleOptionChange"
+            />
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 灰置弹幕自动移除时间 -->
+    <div class="field-item">
+      <div class="field-label">自动移除时间</div>
+      <div class="field-content">
+        <div class="auto-remove-delay-wrapper">
+          <input
+            type="number"
+            class="prefix-input auto-remove-delay"
+            min="1"
+            step="1"
+            :disabled="!localOptions.autoRemoveExpired"
+            v-model.number="localOptions.autoRemoveDelay"
+            @input="handleOptionChange"
+          />
+          <span class="auto-remove-unit">秒</span>
         </div>
       </div>
     </div>
@@ -333,6 +370,31 @@ const addPresetKeyword = template => {
   &:focus {
     outline: none;
     border-color: #1989fa;
+  }
+}
+
+/* 自动移除时间输入 */
+.auto-remove-delay-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auto-remove-delay {
+  width: 80px;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.auto-remove-unit {
+  font-size: 14px;
+  color: #646566;
+
+  [data-theme='night'] & {
+    color: #b0b0b0;
   }
 }
 
