@@ -1,31 +1,35 @@
 /**
  * 房间交互测试
- * 功能：测试房间相关的交互功能
+ * 功能：测试首页入口弹窗中与房间号相关的交互功能
  */
 
 import { test, expect } from '@playwright/test';
 
+import {
+  ROOM_ID,
+  SELECTORS,
+  openEntryPrompt,
+  enterMonitor,
+} from '../utils/entryPrompt.js';
+
 test.describe('Room Interaction Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // 访问测试页面，使用房间号参数
-    await page.goto('/?roomId=317422');
-    // 等待页面加载完成
-    await page.waitForLoadState('domcontentloaded');
-    // 等待3秒钟，让动态内容加载
-    await page.waitForTimeout(3000);
+    // 访问首页，等待入口选择弹窗出现
+    await openEntryPrompt(page);
   });
 
   test('should handle invalid room id', async ({ page }) => {
-    // 测试无效房间号
-    const roomInput = await page.locator('input[type="text"]');
-    await roomInput.fill('invalid-room-id');
+    // 选择通用监控并输入无效房间号
+    await page.locator(SELECTORS.optionMonitor).click();
+    await page.locator(SELECTORS.input).fill('invalid-room-id');
 
     // 点击确定按钮
-    const confirmButton = await page.locator('button:has-text("确定")');
-    await confirmButton.click();
+    await page.locator(SELECTORS.confirm).click();
+    await page.waitForURL('**/invalid-room-id');
 
-    // 验证页面能够处理无效房间号
+    // 验证页面能够处理无效房间号，仍然渲染监控区域
     await expect(page).toHaveTitle(/DouyuEx弹幕助手/);
+    await expect(page.locator(SELECTORS.monitor)).toBeVisible();
   });
 
   test('should support different room ids', async ({ page }) => {
@@ -33,34 +37,21 @@ test.describe('Room Interaction Tests', () => {
     const testRoomIds = ['317422', '123456'];
 
     for (const roomId of testRoomIds) {
-      // 回到无房间号的入口页，重新触发房间号输入弹窗
-      await page.goto('/');
-      await page.waitForLoadState('domcontentloaded');
+      // 通过入口弹窗重新输入房间号
+      await enterMonitor(page, roomId);
 
-      // 输入房间号
-      const roomInput = page.locator('input[type="text"]');
-      await roomInput.fill(roomId);
-
-      // 点击确定按钮
-      const confirmButton = page.locator('button:has-text("确定")');
-      await confirmButton.click();
-
-      // 确定后跳转到对应房间页，验证房间号写入 URL 且页面仍然正常运行
-      await page.waitForURL(`**/${roomId}`);
+      // 验证房间号写入 URL 且页面仍然正常运行
       await expect(page).toHaveTitle(/DouyuEx弹幕助手/);
     }
   });
 
   test('should be able to cancel operation', async ({ page }) => {
-    // 输入房间号
-    const roomInput = await page.locator('input[type="text"]');
-    await roomInput.fill('317422');
+    // 点击取消按钮关闭入口弹窗
+    await page.locator(SELECTORS.cancel).click();
 
-    // 点击取消按钮
-    const cancelButton = await page.locator('button:has-text("取消")');
-    await cancelButton.click();
-
-    // 验证取消操作后页面仍然正常运行
+    // 验证弹窗已关闭，页面停留在首页且仍然正常运行
+    await expect(page.locator(SELECTORS.modal)).toHaveCount(0);
+    await expect(page).toHaveURL(/\/$/);
     await expect(page).toHaveTitle(/DouyuEx弹幕助手/);
   });
 
@@ -80,29 +71,40 @@ test.describe('Room Interaction Tests', () => {
       // 设置视口大小
       await page.setViewportSize(viewport);
 
-      // 验证页面元素仍然可见
-      await expect(page.locator('input')).toBeVisible();
-      await expect(page.locator('button:has-text("确定")')).toBeVisible();
-      await expect(page.locator('button:has-text("取消")')).toBeVisible();
+      // 第一步：入口选项与取消按钮仍然可见
+      await expect(page.locator(SELECTORS.optionMonitor)).toBeVisible();
+      await expect(page.locator(SELECTORS.optionLvjiang)).toBeVisible();
+      await expect(page.locator(SELECTORS.cancel)).toBeVisible();
+
+      // 第二步：房间号输入框、返回与确定按钮仍然可见
+      await page.locator(SELECTORS.optionMonitor).click();
+      await expect(page.locator(SELECTORS.input)).toBeVisible();
+      await expect(page.locator(SELECTORS.back)).toBeVisible();
+      await expect(page.locator(SELECTORS.confirm)).toBeVisible();
+
+      // 返回入口选择步骤，继续下一个视口
+      await page.locator(SELECTORS.back).click();
+      await expect(page.locator(SELECTORS.optionMonitor)).toBeVisible();
     }
   });
 
   test('should handle rapid interactions', async ({ page }) => {
-    // 简化快速交互测试，避免超时
-    const roomInput = await page.locator('input[type="text"]');
+    // 进入房间号输入步骤
+    await page.locator(SELECTORS.optionMonitor).click();
+    const roomInput = page.locator(SELECTORS.input);
 
     // 快速输入多个房间号，但不点击确定
     for (let i = 0; i < 3; i++) {
-      const roomId = `31742${i}`;
-      await roomInput.fill(roomId);
+      await roomInput.fill(`31742${i}`);
       await page.waitForTimeout(300);
     }
 
     // 最后点击一次确定按钮
-    const confirmButton = await page.locator('button:has-text("确定")');
-    await confirmButton.click();
+    await page.locator(SELECTORS.confirm).click();
 
-    // 验证页面能够处理快速交互
+    // 验证页面能够处理快速交互，跳转到最后一次输入的房间号
+    await page.waitForURL(`**/${ROOM_ID}`);
+    await expect(page.locator(SELECTORS.monitor)).toBeVisible();
     await expect(page).toHaveTitle(/DouyuEx弹幕助手/);
   });
 });

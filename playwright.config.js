@@ -10,6 +10,8 @@ export default defineConfig({
   testDir: './tests/e2e/playwright/specs',
   // 测试文件匹配模式
   testMatch: /.*\.spec\.(js|mjs|ts|mts)$/,
+  // 排除非 Playwright 用例的手工调试脚本
+  testIgnore: '**/douyu-monitor.spec.mjs',
 
   // 全局超时设置
   timeout: 60000,

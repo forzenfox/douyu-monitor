@@ -12,8 +12,11 @@ import { parseUrl } from './router.js';
 
 async function initApp() {
   let info = await parseUrl();
+  // 入口选择后正在跳转，无需挂载应用
+  if (info.redirect) return;
   window.rid = info.rid;
   window.options = info.options;
+  window.pageType = info.type || 'monitor';
   logInfo();
   createApp(App).mount('#app');
 }

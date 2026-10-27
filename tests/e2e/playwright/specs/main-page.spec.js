@@ -1,55 +1,65 @@
 /**
  * 主页面端到端测试
- * 功能：测试主页面的基本功能和交互
+ * 功能：测试首页入口弹窗、房间号输入以及监控页加载
  */
 
 import { test, expect } from '@playwright/test';
 
+import {
+  ROOM_ID,
+  SELECTORS,
+  openEntryPrompt,
+  gotoMonitorPage,
+  openMonitorConfig,
+} from '../utils/entryPrompt.js';
+
 test.describe('Main Page E2E Tests', () => {
   test.beforeEach(async ({ page }) => {
-    // 访问测试页面
-    await page.goto('/');
-    // 等待页面加载完成
-    await page.waitForLoadState('domcontentloaded');
-    // 等待3秒钟，让动态内容加载
-    await page.waitForTimeout(3000);
+    // 访问测试页面，等待入口选择弹窗出现
+    await openEntryPrompt(page);
   });
 
   test('should load main page correctly', async ({ page }) => {
     // 验证页面加载成功，使用正确的标题
     await expect(page).toHaveTitle(/DouyuEx弹幕助手/);
 
-    // 验证页面包含基本元素
-    const bodyContent = await page.textContent('body');
-    expect(bodyContent).toContain('请输入真实房间号');
+    // 验证入口弹窗包含两种页面入口和取消按钮
+    await expect(page.locator(SELECTORS.title)).toHaveText('请选择进入的页面');
+    await expect(page.locator(SELECTORS.optionLvjiang)).toBeVisible();
+    await expect(page.locator(SELECTORS.optionMonitor)).toBeVisible();
+    await expect(page.locator(SELECTORS.cancel)).toBeVisible();
   });
 
   test('should have input and button elements', async ({ page }) => {
-    // 验证页面包含输入框
-    await expect(page.locator('input')).toBeVisible();
+    // 第一步弹窗中包含按钮
+    const buttons = page.locator('.entry-option');
+    expect(await buttons.count()).toBeGreaterThanOrEqual(1);
 
-    // 验证页面包含按钮，使用count验证而不是toBeVisible
-    const buttons = await page.locator('button');
-    const buttonsCount = await buttons.count();
-    expect(buttonsCount).toBeGreaterThanOrEqual(1);
+    // 选择通用监控后出现房间号输入框与确定按钮
+    await page.locator(SELECTORS.optionMonitor).click();
+    await expect(page.locator(SELECTORS.input)).toBeVisible();
+    await expect(page.locator(SELECTORS.confirm)).toBeVisible();
   });
 
   test('should handle room id input', async ({ page }) => {
-    // 查找房间号输入框并输入房间号
-    const roomInput = await page.locator('input[type="text"]');
-    await roomInput.fill('317422');
+    // 进入房间号输入步骤并输入房间号
+    await page.locator(SELECTORS.optionMonitor).click();
+    const roomInput = page.locator(SELECTORS.input);
+    await roomInput.fill(ROOM_ID);
 
     // 验证输入成功
-    await expect(roomInput).toHaveValue('317422');
+    await expect(roomInput).toHaveValue(ROOM_ID);
   });
 
   test('should be able to click confirm button', async ({ page }) => {
-    // 查找并点击确定按钮，使用更精确的定位
-    const confirmButton = await page.locator('button:has-text("确定")');
-    await confirmButton.click();
+    // 输入房间号并点击确定按钮
+    await page.locator(SELECTORS.optionMonitor).click();
+    await page.locator(SELECTORS.input).fill(ROOM_ID);
+    await page.locator(SELECTORS.confirm).click();
 
-    // 验证页面响应点击
-    console.log('Confirm button clicked');
+    // 验证跳转到对应房间页并渲染监控区域
+    await page.waitForURL(`**/${ROOM_ID}`);
+    await expect(page.locator(SELECTORS.monitor)).toBeVisible();
   });
 
   test('should take screenshot of main page', async ({ page }) => {
@@ -61,16 +71,15 @@ test.describe('Main Page E2E Tests', () => {
   });
 
   test('should test config page access', async ({ page }) => {
-    // 测试配置页面访问功能
-    // 首先进入配置页面
-    await page.goto('/?roomId=317422&config=1');
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(2000);
+    // 直接通过路径进入监控页，点击监控区域打开配置面板
+    await gotoMonitorPage(page, ROOM_ID);
+    await openMonitorConfig(page);
 
-    // 验证配置页面加载成功
+    // 验证配置面板加载成功
     const bodyContent = await page.textContent('body');
     expect(bodyContent).not.toContain('404');
     expect(bodyContent).not.toContain('Not Found');
+    await expect(page.locator(SELECTORS.popup)).toBeVisible();
 
     // 截图记录配置页面状态
     await page.screenshot({
