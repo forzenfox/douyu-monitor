@@ -1,190 +1,165 @@
-import { getRandom } from '@/global/utils';
+import { DanmakuConnection } from './danmakuConnection.js';
+
 /*
    DouyuEx WebSocket UnLogin
     By: 小淳
+
+   对外保持原有 API（new Ex_WebSocket_UnLogin(rid, callback, callback_error)），
+   内部传输层优先使用 Web Worker 承载连接：Worker 定时器不受页面后台节流影响，
+   切换标签页/最小化/锁屏恢复后仍能按时心跳并自动重连。
+   extra 可选：{ onStatus(open), onActivity(timestamp) }
 */
 class Ex_WebSocket_UnLogin {
   // 调用方法：
-  // 连接：let a = new Ex_WebSocket_UnLogin("房间号", 消息回调函数);
-  // 关闭连接: a.WebSocket_Close(); a = null; 记得null掉变量再重新连接
+  // 连接：let a = new Ex_WebSocket_UnLogin("房间号", 消息回调函数, 错误回调函数);
+  // 关闭连接: a.close(); a = null; 记得null掉变量再重新连接
   // 消息回调函数建议用箭头函数，示例：(msg) => {// TODO}
-  constructor(rid, callback, callback_error) {
-    if ('WebSocket' in window) {
-      this.timer = 0;
-      this.roomid = rid;
-      this.callback = callback;
-      this.callback_error = callback_error;
-      this.isBackground = false;
-      this.backgroundTimer = null;
+  constructor(rid, callback, callback_error, extra = {}) {
+    this.roomid = rid;
+    this.callback = callback || (() => {});
+    this.callback_error = callback_error || (() => {});
+    this.onStatus = extra.onStatus || (() => {});
+    this.onActivity = extra.onActivity || (() => {});
 
-      // 监听页面可见性变化
-      document.addEventListener('visibilitychange', () => {
-        this.isBackground = document.hidden;
-        if (this.isBackground) {
-          // 页面进入后台，调整心跳间隔
-          this.adjustHeartbeatForBackground();
-        } else {
-          // 页面回到前台，恢复正常心跳
-          this.restoreHeartbeatForForeground();
-        }
-      });
+    this.closed = false;
+    this.worker = null;
+    this.connection = null;
+    this._lifecycleListeners = [];
 
-      this.connect();
-    }
-  }
+    this._startTransport();
+    this._bindLifecycle();
 
-  connect() {
-    this.ws = new WebSocket(
-      'wss://danmuproxy.douyu.com:850' + String(getRandom(2, 5))
-    ); // 负载均衡 8502~8504都可以用
-    this.ws.onopen = () => {
-      this.ws.send(WebSocket_Packet('type@=loginreq/roomid@=' + this.roomid));
-      this.ws.send(
-        WebSocket_Packet('type@=joingroup/rid@=' + this.roomid + '/gid@=-9999/')
-      );
-      this.startHeartbeat();
-      // console.log("WebSocket已连接");
-    };
-    this.ws.onmessage = e => {
-      let reader = new FileReader();
-      reader.onload = () => {
-        let arr = String(reader.result).split('\0'); // 分包
-        reader = null;
-        for (let i = 0; i < arr.length; i++) {
-          if (arr[i].length > 12) {
-            // 过滤第一条和心跳包
-            this.callback(arr[i]);
-          }
-        }
-      };
-      reader.readAsText(e.data);
-    };
-    this.ws.onclose = () => {
-      this.stopHeartbeat();
-      this.callback_error();
-    };
-    this.ws.onerror = () => {
-      this.stopHeartbeat();
-      this.callback_error();
-    };
-  }
-
-  startHeartbeat() {
-    this.stopHeartbeat();
-    // 正常心跳间隔40秒
-    this.timer = setInterval(() => {
-      this.sendHeartbeat();
-    }, 40000);
-  }
-
-  stopHeartbeat() {
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = 0;
-    }
-    if (this.backgroundTimer) {
-      clearInterval(this.backgroundTimer);
-      this.backgroundTimer = null;
-    }
-  }
-
-  sendHeartbeat() {
-    try {
-      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.ws.send(WebSocket_Packet('type@=mrkl/'));
-      }
-    } catch (error) {
-      console.error('[WebSocket] 发送心跳失败:', error);
-      this.callback_error();
+    if (this.worker) {
+      this.worker.postMessage({ type: 'connect', rid: this.roomid });
+    } else if (this.connection) {
+      this.connection.connect();
     }
   }
 
   /**
-   * 调整后台运行时的心跳策略
+   * 优先使用 Worker 传输，环境不支持或构造失败时回退主线程连接
    */
-  adjustHeartbeatForBackground() {
-    this.stopHeartbeat();
-    // 后台运行时，心跳间隔调整为20秒，更频繁的心跳有助于保持连接
-    this.backgroundTimer = setInterval(() => {
-      this.sendHeartbeat();
-    }, 20000);
-  }
-
-  /**
-   * 恢复前台运行时的正常心跳
-   */
-  restoreHeartbeatForForeground() {
-    this.startHeartbeat();
-  }
-  close() {
-    // 清理所有定时器
-    this.stopHeartbeat();
-
-    // 移除事件监听器
-    document.removeEventListener('visibilitychange', () => {
-      this.isBackground = document.hidden;
-      if (this.isBackground) {
-        this.adjustHeartbeatForBackground();
-      } else {
-        this.restoreHeartbeatForForeground();
+  _startTransport() {
+    if (typeof Worker !== 'undefined') {
+      try {
+        this.worker = new Worker(
+          new URL('./danmaku.worker.js', import.meta.url),
+          { type: 'module' }
+        );
+        this.worker.onmessage = event => this._handleWorkerMessage(event);
+        this.worker.onerror = () => {
+          if (!this.closed) this.callback_error();
+        };
+        return;
+      } catch {
+        this.worker = null;
       }
+    }
+
+    this.connection = new DanmakuConnection(this.roomid, {
+      onMessage: msg => {
+        if (!this.closed) this.callback(msg);
+      },
+      onError: () => {
+        if (!this.closed) this.callback_error();
+      },
+      onStatus: open => {
+        if (!this.closed) this.onStatus(open);
+      },
+      onActivity: at => {
+        if (!this.closed) this.onActivity(at);
+      },
     });
+  }
 
-    // 关闭WebSocket连接
-    if (this.ws) {
-      this.ws.close();
+  _handleWorkerMessage(event) {
+    const data = event && event.data;
+    if (!data || this.closed) return;
+
+    switch (data.type) {
+      case 'message':
+        this.callback(data.data);
+        break;
+      case 'status':
+        this.onStatus(Boolean(data.open));
+        break;
+      case 'activity':
+        this.onActivity(data.at);
+        break;
+      case 'error':
+        this.callback_error();
+        break;
+      default:
+        break;
     }
   }
-}
 
-/*
-   DouyuEx WebSocket
-    By: 小淳
-    此处为一些公共函数
-*/
+  /**
+   * 监听页面生命周期：恢复可见/从休眠唤醒时立即校准连接
+   */
+  _bindLifecycle() {
+    if (typeof document === 'undefined') return;
 
-function WebSocket_Packet(str) {
-  const MSG_TYPE = 689;
-  let bytesArr = stringToByte(str);
-  let buffer = new Uint8Array(bytesArr.length + 4 + 4 + 2 + 1 + 1 + 1);
-  let p_content = new Uint8Array(bytesArr.length); // 消息内容
-  for (let i = 0; i < p_content.length; i++) {
-    p_content[i] = bytesArr[i];
+    const ensureAlive = () => {
+      if (!this.closed) this._ensureAlive();
+    };
+    const onVisibilityChange = () => {
+      // 进入后台时无需处理，回到前台立即校准
+      if (document.hidden) return;
+      ensureAlive();
+    };
+
+    this._lifecycleListeners = [
+      ['visibilitychange', onVisibilityChange],
+      ['freeze', ensureAlive],
+      ['resume', ensureAlive],
+      ['pageshow', ensureAlive],
+    ];
+    this._lifecycleListeners.forEach(([name, handler]) => {
+      document.addEventListener(name, handler);
+    });
   }
-  let p_length = new Uint32Array([bytesArr.length + 4 + 2 + 1 + 1 + 1]); // 消息长度
-  let p_type = new Uint32Array([MSG_TYPE]); // 消息类型
 
-  buffer.set(new Uint8Array(p_length.buffer), 0);
-  buffer.set(new Uint8Array(p_length.buffer), 4);
-  buffer.set(new Uint8Array(p_type.buffer), 8);
-  buffer.set(p_content, 12);
-
-  return buffer;
-}
-
-function stringToByte(str) {
-  let bytes = new Array();
-  let len, c;
-  len = str.length;
-  for (let i = 0; i < len; i++) {
-    c = String(str).charCodeAt(i);
-    if (c >= 0x010000 && c <= 0x10ffff) {
-      bytes.push(((c >> 18) & 0x07) | 0xf0);
-      bytes.push(((c >> 12) & 0x3f) | 0x80);
-      bytes.push(((c >> 6) & 0x3f) | 0x80);
-      bytes.push((c & 0x3f) | 0x80);
-    } else if (c >= 0x000800 && c <= 0x00ffff) {
-      bytes.push(((c >> 12) & 0x0f) | 0xe0);
-      bytes.push(((c >> 6) & 0x3f) | 0x80);
-      bytes.push((c & 0x3f) | 0x80);
-    } else if (c >= 0x000080 && c <= 0x0007ff) {
-      bytes.push(((c >> 6) & 0x1f) | 0xc0);
-      bytes.push((c & 0x3f) | 0x80);
-    } else {
-      bytes.push(c & 0xff);
+  _ensureAlive() {
+    if (this.worker) {
+      this.worker.postMessage({ type: 'ensureAlive' });
+    } else if (this.connection) {
+      this.connection.ensureAlive();
     }
   }
-  return bytes;
+
+  /**
+   * 静默关闭：移除页面监听、终止 Worker/连接，不再触发任何回调
+   */
+  close() {
+    if (this.closed) return;
+    this.closed = true;
+
+    if (typeof document !== 'undefined') {
+      this._lifecycleListeners.forEach(([name, handler]) => {
+        document.removeEventListener(name, handler);
+      });
+    }
+    this._lifecycleListeners = [];
+
+    if (this.worker) {
+      const worker = this.worker;
+      this.worker = null;
+      worker.onmessage = null;
+      worker.onerror = null;
+      try {
+        worker.postMessage({ type: 'close' });
+      } catch {
+        // 忽略 Worker 已不可用的异常
+      }
+      worker.terminate();
+    }
+
+    if (this.connection) {
+      this.connection.close();
+      this.connection = null;
+    }
+  }
 }
 
 export { Ex_WebSocket_UnLogin };
