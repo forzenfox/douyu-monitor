@@ -5,11 +5,7 @@ import { parseCommand } from '../utils/parseCommand.js';
 import { parseAssistantReply } from '../utils/parseAssistantReply.js';
 import { matchReply } from '../utils/matchReply.js';
 
-// WebSocket 重连相关配置
-const MAX_RECONNECT_ATTEMPTS = 50; // 最大重连次数
-const BASE_RECONNECT_INTERVAL = 1000; // 基础重连间隔（毫秒）
-const MAX_RECONNECT_INTERVAL = 60000; // 最大重连间隔（毫秒）
-const HEARTBEAT_INTERVAL = 30000; // 心跳间隔（毫秒）
+// 心跳与重连由传输层（websocket.js / danmakuConnection.js）负责
 const TIMEOUT_SCAN_INTERVAL = 1000; // 超时扫描间隔（毫秒）
 
 /**
@@ -32,10 +28,7 @@ export function useLvjiangWs(options) {
   // 已处理消息ID集合，用于去重
   const processedIds = new Set();
 
-  let reconnectTimer = null;
-  let heartbeatTimer = null;
   let timeoutTimer = null;
-  let lastHeartbeatTime = 0;
 
   const getOptions = () => (options && options.value ? options.value : {});
   const getMembers = () => getOptions().members || [];
@@ -57,14 +50,6 @@ export function useLvjiangWs(options) {
     if (ws) {
       ws.close();
       ws = null;
-    }
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
-    if (heartbeatTimer) {
-      clearInterval(heartbeatTimer);
-      heartbeatTimer = null;
     }
     if (timeoutTimer) {
       clearInterval(timeoutTimer);
@@ -164,50 +149,6 @@ export function useLvjiangWs(options) {
   };
 
   /**
-   * 启动心跳检测
-   * @param {string} rid - 房间号
-   */
-  const startHeartbeat = rid => {
-    if (heartbeatTimer) {
-      clearInterval(heartbeatTimer);
-    }
-    heartbeatTimer = setInterval(() => {
-      if (Date.now() - lastHeartbeatTime > HEARTBEAT_INTERVAL * 2) {
-        reconnectCount.value++;
-        reconnectWs(rid);
-      }
-    }, HEARTBEAT_INTERVAL);
-  };
-
-  /**
-   * 计算重连间隔，使用指数退避策略
-   * @returns {number} 重连间隔时间（毫秒）
-   */
-  const calculateReconnectInterval = () => {
-    const interval = Math.min(
-      BASE_RECONNECT_INTERVAL * Math.pow(2, reconnectCount.value - 1),
-      MAX_RECONNECT_INTERVAL
-    );
-    return interval + Math.random() * 1000;
-  };
-
-  /**
-   * 重新连接 WebSocket
-   * @param {string} rid - 房间号
-   */
-  const reconnectWs = rid => {
-    if (reconnectCount.value >= MAX_RECONNECT_ATTEMPTS) {
-      isConnected.value = false;
-      return;
-    }
-    cleanupResources();
-    const interval = calculateReconnectInterval();
-    reconnectTimer = setTimeout(() => {
-      connectWs(rid);
-    }, interval);
-  };
-
-  /**
    * 建立弹幕连接
    * @param {string} rid - 房间号
    */
@@ -222,36 +163,28 @@ export function useLvjiangWs(options) {
       ws = new Ex_WebSocket_UnLogin(
         rid,
         msg => {
-          lastHeartbeatTime = Date.now();
-          if (!isConnected.value) {
-            isConnected.value = true;
-            reconnectCount.value = 0;
-            startHeartbeat(rid);
-          }
           handleMsg(msg);
         },
         () => {
+          // 传输层会在后台自动重连，这里仅同步展示状态
           isConnected.value = false;
           reconnectCount.value++;
-          reconnectWs(rid);
+        },
+        {
+          onStatus: open => {
+            isConnected.value = Boolean(open);
+            if (open) {
+              reconnectCount.value = 0;
+            }
+          },
         }
       );
-
-      ws.onclose = () => {
-        isConnected.value = false;
-        reconnectCount.value++;
-        reconnectWs(rid);
-      };
-      ws.onerror = () => {
-        isConnected.value = false;
-      };
 
       // 启动超时扫描
       timeoutTimer = setInterval(() => checkTimeouts(), TIMEOUT_SCAN_INTERVAL);
     } catch {
       isConnected.value = false;
       reconnectCount.value++;
-      reconnectWs(rid);
     }
   };
 

@@ -4,12 +4,13 @@ import { useLvjiangWs } from '@/lvjiang/hooks/useLvjiangWs.js';
 
 // Mock WebSocket，暴露 onMessage 供测试直接触发
 vi.mock('@/global/utils/websocket.js', () => ({
-  Ex_WebSocket_UnLogin: vi.fn().mockImplementation(function (rid, onMessage) {
-    globalThis.__lvjiangOnMessage = onMessage;
-    this.close = vi.fn();
-    this.onclose = null;
-    this.onerror = null;
-  }),
+  Ex_WebSocket_UnLogin: vi
+    .fn()
+    .mockImplementation(function (rid, onMessage, onError, extra) {
+      globalThis.__lvjiangOnMessage = onMessage;
+      globalThis.__lvjiangExtra = extra;
+      this.close = vi.fn();
+    }),
 }));
 
 // Mock STT
@@ -65,6 +66,16 @@ describe('useLvjiangWs', () => {
     api.connectWs('317422');
     return api;
   };
+
+  it('连接状态由传输层状态同步', () => {
+    const api = setup();
+
+    globalThis.__lvjiangExtra.onStatus(true);
+    expect(api.isConnected.value).toBe(true);
+
+    globalThis.__lvjiangExtra.onStatus(false);
+    expect(api.isConnected.value).toBe(false);
+  });
 
   it('初始化指令列表为空', () => {
     const { commandList } = useLvjiangWs(options);

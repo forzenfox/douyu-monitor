@@ -6,11 +6,12 @@ import { useWebsocket } from '@/monitor/hooks/useWebsocket.js';
 vi.mock('@/global/utils/websocket.js', () => ({
   Ex_WebSocket_UnLogin: vi
     .fn()
-    .mockImplementation((rid, onMessage, onError) => {
+    .mockImplementation(function (rid, onMessage, onError, extra) {
+      globalThis.__exWsOnMessage = onMessage;
+      globalThis.__exWsOnError = onError;
+      globalThis.__exWsExtra = extra;
       return {
         close: vi.fn(),
-        onclose: null,
-        onerror: null,
         // 模拟连接成功
         connect: vi.fn(() => {
           setTimeout(() => {
@@ -415,6 +416,37 @@ describe('useWebsocket', () => {
       'type@=blab/uid@=377858580/nn@=testUser/lbl@=14/bl@=15/ba@=1/bnn@=test/diaf@=0/rid@=123/';
 
     expect(giftList.value.length).toBe(0);
+  });
+
+  it('should sync connection state from transport status', () => {
+    const { connectWs, isConnected, reconnectCount } = useWebsocket(
+      options,
+      allGiftData
+    );
+    reconnectCount.value = 3;
+    connectWs('123');
+
+    // 传输层连上后置为已连接并清零重连计数
+    globalThis.__exWsExtra.onStatus(true);
+    expect(isConnected.value).toBe(true);
+    expect(reconnectCount.value).toBe(0);
+
+    globalThis.__exWsExtra.onStatus(false);
+    expect(isConnected.value).toBe(false);
+  });
+
+  it('should only update state on transport error without self reconnect', () => {
+    const { connectWs, isConnected, reconnectCount } = useWebsocket(
+      options,
+      allGiftData
+    );
+    connectWs('123');
+    globalThis.__exWsExtra.onStatus(true);
+
+    globalThis.__exWsOnError();
+
+    expect(isConnected.value).toBe(false);
+    expect(reconnectCount.value).toBe(1);
   });
 
   it('should check enter valid correctly', () => {
